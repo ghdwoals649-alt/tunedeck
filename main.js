@@ -11,8 +11,8 @@ const updater = require('./updater');
 const APP_VERSION = JSON.parse(fs.readFileSync(path.join(__dirname, 'package.json'), 'utf8')).version;
 let updateReady = null;
 
-// 접힌 창: LP(지름 200)의 왼쪽 절반만 보이도록 폭 112 (그림자 여백 12)
-const COLLAPSED = { w: 112, h: 212, lpTop: 6 };
+// 접힌 창: 카세트(220x140)의 왼쪽 절반만 보이도록 폭 122 (그림자 여백 12)
+const COLLAPSED = { w: 122, h: 152, lpTop: 6 };
 const EXPANDED_W = 400;
 const EXPANDED_MAX_H = 920;
 
@@ -250,7 +250,75 @@ async function checkForUpdate() {
 }
 
 ipcMain.on('open-external', (_e, url) => {
-  if (/^https:\/\/(www\.|music\.)?youtube\.com\//.test(url)) shell.openExternal(url);
+  if (/^https:\/\/((www\.|music\.)?youtube\.com|console\.cloud\.google\.com)\//.test(url)) shell.openExternal(url);
+});
+
+// ---------- YouTube 검색 (공식 Data API v3, 사용자 본인의 API 키) ----------
+const decodeEntities = (s) => String(s || '')
+  .replace(/&#39;/g, "'").replace(/&quot;/g, '"').replace(/&lt;/g, '<')
+  .replace(/&gt;/g, '>').replace(/&#(\d+);/g, (_, n) => String.fromCharCode(+n)).replace(/&amp;/g, '&');
+
+function isoDuration(iso) {
+  const m = /PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?/.exec(iso || '');
+  if (!m) return '';
+  const h = +(m[1] || 0), mi = +(m[2] || 0), s = +(m[3] || 0);
+  if (!h && !mi && !s) return '';
+  const ss = String(s).padStart(2, '0');
+  return h ? `${h}:${String(mi).padStart(2, '0')}:${ss}` : `${mi}:${ss}`;
+}
+
+async function ytSearch(q, key, max = 20) {
+  const params = new URLSearchParams({
+    part: 'snippet', type: 'video', videoEmbeddable: 'true', videoSyndicated: 'true',
+    maxResults: String(max), q, key, regionCode: 'KR', relevanceLanguage: 'ko',
+  });
+  const res = await net.fetch('https://www.googleapis.com/youtube/v3/search?' + params);
+  const json = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    const reason = json?.error?.errors?.[0]?.reason || '';
+    const msg = json?.error?.message || '';
+    if (reason === 'quotaExceeded' || reason === 'dailyLimitExceeded') return { error: 'quota' };
+    if (reason === 'accessNotConfigured' || /has not been used|is disabled/i.test(msg)) return { error: 'notenabled' };
+    if (reason === 'keyInvalid' || /API key not valid|API_KEY_INVALID/i.test(msg)) return { error: 'badkey' };
+    return { error: 'fail', message: msg };
+  }
+  const items = (json.items || [])
+    .filter((i) => i.id && i.id.videoId)
+    .map((i) => ({ id: i.id.videoId, title: decodeEntities(i.snippet.title), author: decodeEntities(i.snippet.channelTitle) }));
+  if (items.length) {
+    try {
+      const r2 = await net.fetch('https://www.googleapis.com/youtube/v3/videos?' + new URLSearchParams({
+        part: 'contentDetails', id: items.map((i) => i.id).join(','), key,
+      }));
+      if (r2.ok) {
+        const j2 = await r2.json();
+        const dur = new Map((j2.items || []).map((v) => [v.id, isoDuration(v.contentDetails?.duration)]));
+        items.forEach((i) => { i.duration = dur.get(i.id) || ''; });
+      }
+    } catch {}
+  }
+  return { items };
+}
+
+ipcMain.handle('yt:hasKey', () => !!settings().apiKey);
+ipcMain.handle('yt:setKey', async (_e, key) => {
+  key = String(key || '').trim();
+  if (!/^[\w-]{30,60}$/.test(key)) return { ok: false, error: 'format' };
+  try {
+    const r = await ytSearch('music', key, 1);
+    if (r.error) return { ok: false, error: r.error };
+  } catch {
+    return { ok: false, error: 'network' };
+  }
+  saveSettings({ apiKey: key });
+  return { ok: true };
+});
+ipcMain.handle('yt:search', async (_e, q) => {
+  const key = settings().apiKey;
+  if (!key) return { error: 'nokey' };
+  q = String(q || '').trim().slice(0, 200);
+  if (!q) return { items: [] };
+  try { return await ytSearch(q, key); } catch { return { error: 'network' }; }
 });
 
 // ---------- 트레이 ----------
@@ -278,7 +346,12 @@ function buildTrayMenu() {
       click: (item) => app.setLoginItemSettings({ openAtLogin: item.checked }),
     },
     {
-      label: 'LP 위치 초기화',
+      label: '검색용 API 키 지우기',
+      enabled: !!s.apiKey,
+      click: () => saveSettings({ apiKey: null }),
+    },
+    {
+      label: '카세트 위치 초기화',
       click: () => { saveSettings({ dockY: null }); if (!expanded) applyBounds(collapsedBounds()); },
     },
     { type: 'separator' },

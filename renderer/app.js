@@ -1,23 +1,29 @@
-// TuneDeck renderer — LP 위젯 + YouTube IFrame 플레이어
+// TuneDeck renderer — 카세트 위젯 + YouTube IFrame 플레이어 + 검색
 (() => {
   'use strict';
 
   const api = window.api;
   const $ = (id) => document.getElementById(id);
   const appEl = $('app');
+  const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
   const els = {
-    lp: $('lp'), labelImg: $('labelImg'), bgA: $('bgA'), bgB: $('bgB'),
+    tape: $('tape'), tapeBody: document.querySelector('.tape-body'), deck: document.querySelector('.deck'),
+    labelImg: $('labelImg'), labelTitle: $('labelTitle'), labelArtist: $('labelArtist'),
+    bgA: $('bgA'), bgB: $('bgB'),
     title: $('title'), artist: $('artist'), cur: $('cur'), dur: $('dur'), seek: $('seek'),
     play: $('playBtn'), prev: $('prevBtn'), next: $('nextBtn'),
     shuffle: $('shuffleBtn'), repeat: $('repeatBtn'), volume: $('volume'),
-    form: $('addForm'), input: $('linkInput'), msg: $('addMsg'),
-    queue: $('queue'), count: $('count'), collapse: $('collapseBtn'), panel: document.querySelector('.panel'),
+    searchForm: $('searchForm'), searchInput: $('searchInput'), msg: $('msg'),
+    tabQueue: $('tabQueue'), tabResults: $('tabResults'),
+    queue: $('queue'), count: $('count'), resultsPane: $('resultsPane'), results: $('results'),
+    keyCard: $('keyCard'), keyForm: $('keyForm'), keyInput: $('keyInput'),
+    collapse: $('collapseBtn'), panel: document.querySelector('.panel'),
   };
 
   // ---------------- 상태 ----------------
   const state = {
-    items: [],      // { id, title, author, broken? }
+    items: [],      // { id, title, author, duration?, broken? }
     index: -1,
     shuffle: false,
     repeat: 'all',  // all | one | off
@@ -28,18 +34,20 @@
   let isPlaying = false;
   let expanded = false;
   let busy = false;
-  let lpStartTop = 6;
+  let startTop = 6;
   let seeking = false;
   let errorStreak = 0;
   let history = [];
   let pendingAutoplay = false;
+  let results = [];
+  let pendingQuery = '';
 
   // 10초 안에 YouTube 플레이어가 안 뜨면 알려주기
   setTimeout(() => {
     if (playerReady) return;
     const loaded = !!(window.YT && YT.Player);
     say(loaded
-      ? '유튜브 플레이어가 응답하지 않아요. 트레이 아이콘 우클릭 → 종료 후 다시 실행해 보세요.'
+      ? '유튜브 플레이어가 응답하지 않아요. 종료 후 다시 실행해 보세요.'
       : 'youtube.com에 연결하지 못했어요. 인터넷 연결이나 방화벽·백신의 차단 여부를 확인해 주세요.', true);
     document.querySelector('.video-empty').textContent = '유튜브 플레이어를 불러오지 못했어요';
     appEl.classList.remove('has-track');
@@ -63,7 +71,7 @@
   function parseLink(text) {
     const s = (text || '').trim();
     if (!s) return null;
-    if (/^[\w-]{11}$/.test(s)) return { videoId: s };
+    if (/^[\w-]{11}$/.test(s) && /[0-9_-]/.test(s)) return { videoId: s };
     let u;
     try { u = new URL(/^https?:\/\//i.test(s) ? s : 'https://' + s); } catch { return null; }
     const host = u.hostname.replace(/^(www|m|music)\./, '');
@@ -89,7 +97,7 @@
     els.msg.textContent = text;
     els.msg.classList.toggle('error', isError);
     clearTimeout(msgTimer);
-    msgTimer = setTimeout(() => { els.msg.textContent = ''; }, 5000);
+    msgTimer = setTimeout(() => { els.msg.textContent = ''; }, 6000);
   }
 
   // ---------------- 곡 추가 ----------------
@@ -107,34 +115,33 @@
     save();
   }
 
-  function addVideo(id, { silent = false } = {}) {
+  function addVideo(id, { silent = false, meta = null } = {}) {
     if (state.items.some((it) => it.id === id)) {
       if (!silent) say('이미 재생목록에 있는 곡이에요.');
       return null;
     }
-    const item = { id, title: '불러오는 중…', author: '' };
+    const item = meta
+      ? { id, title: meta.title, author: meta.author || '', duration: meta.duration || '' }
+      : { id, title: '불러오는 중…', author: '' };
     state.items.push(item);
     renderQueue();
+    renderResults();
     save();
     return item;
   }
 
   async function addFromText(text) {
     const parsed = parseLink(text);
-    if (!parsed) {
-      say('유튜브 링크가 아니에요. youtube.com 이나 youtu.be 주소를 넣어주세요.', true);
-      return false;
-    }
+    if (!parsed) return false;
     if (parsed.videoId) {
       const item = addVideo(parsed.videoId);
       if (!item) return true;
       const startNow = state.index < 0 || !isPlaying;
       if (startNow) playAt(state.items.length - 1);
       await fillMeta(item);
-      say(startNow ? `재생해요: ${item.title}` : `추가했어요: ${item.title}`);
+      say(startNow ? `재생해요: ${item.title}` : `재생목록에 추가했어요: ${item.title}`);
       return true;
     }
-    // 재생목록 링크
     say('재생목록을 불러오는 중…');
     const ids = await resolvePlaylist(parsed.listId);
     if (!ids || !ids.length) {
@@ -146,7 +153,6 @@
     if (!added.length) { say('재생목록의 곡이 모두 이미 들어 있어요.'); return true; }
     if (state.index < 0 || !isPlaying) playAt(firstNew);
     say(`재생목록에서 ${added.length}곡을 추가했어요.`);
-    // 곡 정보는 4개씩 나눠 조회
     for (let i = 0; i < added.length; i += 4) {
       await Promise.all(added.slice(i, i + 4).map(fillMeta));
     }
@@ -183,6 +189,106 @@
     });
   }
 
+  // ---------------- 검색 ----------------
+  function showTab(name) {
+    const isResults = name === 'results';
+    els.tabQueue.setAttribute('aria-selected', String(!isResults));
+    els.tabResults.setAttribute('aria-selected', String(isResults));
+    els.queue.hidden = isResults;
+    els.resultsPane.hidden = !isResults;
+  }
+  els.tabQueue.addEventListener('click', () => showTab('queue'));
+  els.tabResults.addEventListener('click', () => showTab('results'));
+
+  function showKeyCard(show) {
+    els.keyCard.hidden = !show;
+    if (show) setTimeout(() => els.keyInput.focus(), 50);
+  }
+
+  const SEARCH_ERRORS = {
+    badkey: 'API 키가 올바르지 않아요. 키를 다시 확인해 주세요.',
+    notenabled: 'Google Cloud에서 "YouTube Data API v3"를 사용 설정해 주세요.',
+    quota: '오늘 검색 한도를 다 썼어요. 내일 다시 검색할 수 있어요. 링크 붙여넣기는 계속 돼요.',
+    network: '검색 서버에 연결하지 못했어요. 인터넷 연결을 확인해 주세요.',
+    fail: '검색하지 못했어요. 잠시 뒤 다시 해 보세요.',
+    format: 'API 키 형식이 아니에요. AIza로 시작하는 키를 그대로 붙여넣어 주세요.',
+  };
+
+  async function doSearch(q) {
+    showTab('results');
+    if (!api) return;
+    if (!(await api.hasKey())) {
+      pendingQuery = q;
+      showKeyCard(true);
+      say('검색하려면 API 키를 한 번 입력해 주세요.');
+      return;
+    }
+    els.searchForm.classList.add('loading');
+    say(`"${q}" 검색 중…`);
+    const r = await api.search(q).catch(() => ({ error: 'network' }));
+    els.searchForm.classList.remove('loading');
+    if (r.error) {
+      if (r.error === 'nokey' || r.error === 'badkey' || r.error === 'notenabled') {
+        pendingQuery = q;
+        showKeyCard(true);
+      }
+      say(SEARCH_ERRORS[r.error] || SEARCH_ERRORS.fail, true);
+      return;
+    }
+    showKeyCard(false);
+    results = r.items || [];
+    renderResults();
+    els.resultsPane.scrollTop = 0;
+    say(results.length ? `"${q}" 검색 결과 ${results.length}개` : `"${q}" 검색 결과가 없어요.`);
+  }
+
+  els.keyForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const key = els.keyInput.value.trim();
+    if (!key) return els.keyInput.focus();
+    say('키를 확인하는 중…');
+    const r = await api.setKey(key);
+    if (!r.ok) { say(SEARCH_ERRORS[r.error] || SEARCH_ERRORS.fail, true); return; }
+    els.keyInput.value = '';
+    showKeyCard(false);
+    say('API 키를 저장했어요. 이제 검색할 수 있어요.');
+    if (pendingQuery) { const q = pendingQuery; pendingQuery = ''; doSearch(q); }
+  });
+  $('keyHelpBtn').addEventListener('click', () =>
+    api?.openExternal('https://console.cloud.google.com/apis/library/youtube.googleapis.com'));
+
+  function playNow(r) {
+    let idx = state.items.findIndex((it) => it.id === r.id);
+    if (idx < 0) {
+      const at = state.index >= 0 ? state.index + 1 : state.items.length;
+      state.items.splice(at, 0, { id: r.id, title: r.title, author: r.author || '', duration: r.duration || '' });
+      history = [];
+      idx = at;
+    }
+    playAt(idx);
+    renderResults();
+  }
+
+  els.searchForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const v = els.searchInput.value.trim();
+    if (!v) { els.searchInput.focus(); return; }
+    if (parseLink(v)) {
+      await addFromText(v);
+      els.searchInput.value = '';
+      showTab('queue');
+    } else {
+      doSearch(v);
+    }
+  });
+
+  // 창 어디서든 유튜브 링크를 Ctrl+V 하면 바로 추가
+  document.addEventListener('paste', (e) => {
+    if (e.target.tagName === 'INPUT') return;
+    const text = e.clipboardData.getData('text');
+    if (text && parseLink(text)) { e.preventDefault(); addFromText(text); }
+  });
+
   // ---------------- 재생 ----------------
   function playAt(i, { autoplay = true } = {}) {
     if (i < 0 || i >= state.items.length) return;
@@ -193,7 +299,6 @@
       if (autoplay) player.loadVideoById(item.id);
       else player.cueVideoById(item.id);
     } else {
-      // 플레이어가 아직 준비 안 됨 → 준비되면 바로 재생
       pendingAutoplay = autoplay;
       if (!window.YT || !YT.Player) say('유튜브 플레이어를 불러오는 중이에요… 준비되면 바로 재생돼요.');
     }
@@ -229,7 +334,7 @@
     if (playerReady && player.getCurrentTime() > 3) { player.seekTo(0, true); return; }
     if (state.shuffle && history.length) {
       const i = history.pop();
-      state.index = -1; // history 에 다시 쌓이지 않도록
+      state.index = -1;
       playAt(i);
       return;
     }
@@ -253,7 +358,6 @@
     if ('mediaSession' in navigator) navigator.mediaSession.playbackState = v ? 'playing' : 'paused';
   }
 
-  // YouTube IFrame API 진입점
   window.onYouTubeIframeAPIReady = () => {
     player = new YT.Player('player', {
       width: '100%', height: '100%',
@@ -287,7 +391,7 @@
           if (it) { it.broken = true; renderQueue(); save(); }
           const code = e.data;
           const reasons = {
-            2: '링크의 영상 ID가 올바르지 않아요',
+            2: '영상 ID가 올바르지 않아요',
             5: '이 영상은 이 플레이어에서 재생할 수 없어요',
             100: '삭제됐거나 비공개인 영상이에요',
             101: '업로더가 외부 재생을 막아 둔 영상이에요',
@@ -304,22 +408,104 @@
     });
   };
 
-  // ---------------- 화면 그리기 ----------------
-  let bgFront = els.bgA;
-  let lastCover = '';
-  function setCover(id) {
-    const src = id ? thumb(id) : '';
-    if (src === lastCover) return;
-    lastCover = src;
+  // ---------------- 카세트 ----------------
+  function setSpools(p) {
+    p = Math.max(0, Math.min(1, p || 0));
+    els.tape.style.setProperty('--sl', (0.47 + 0.53 * (1 - p)).toFixed(3));
+    els.tape.style.setProperty('--sr', (0.47 + 0.53 * p).toFixed(3));
+  }
 
+  let labelId;
+  function setCassetteLabel(it) {
+    els.labelTitle.textContent = it ? it.title : 'TuneDeck';
+    els.labelArtist.textContent = it ? (it.author || '') : '빈 테이프';
+    const id = it ? it.id : null;
+    if (id === labelId) return;
+    labelId = id;
+    setSpools(0);
     els.labelImg.classList.remove('show');
-    if (src) {
+    if (id) {
       els.labelImg.onload = () => els.labelImg.classList.add('show');
-      els.labelImg.src = src;
+      els.labelImg.src = thumb(id);
     } else {
       els.labelImg.removeAttribute('src');
     }
+  }
 
+  // 곡이 바뀌면: 테이프를 꺼내고 → 라벨 교체 → 새 테이프를 넣는다
+  const run = (el, frames, opts) => el.animate(frames, { fill: 'forwards', ...opts }).finished.catch(() => {});
+  let swapping = false;
+  let swapAgain = false;
+
+  async function animOut() {
+    if (expanded) {
+      await run(els.tapeBody, [
+        { transform: 'translateY(0) rotate(0deg)', opacity: 1 },
+        { transform: 'translateY(-14%) rotate(-1deg)', opacity: 1, offset: 0.3 },
+        { transform: 'translateY(-150%) rotate(-5deg)', opacity: 0 },
+      ], { duration: 420, easing: 'cubic-bezier(.5,0,.75,0)' });
+    } else {
+      await run(els.tapeBody, [
+        { transform: 'translateX(0)', opacity: 1 },
+        { transform: 'translateX(70%)', opacity: 0 },
+      ], { duration: 320, easing: 'ease-in' });
+    }
+  }
+
+  async function animIn() {
+    if (expanded) {
+      await run(els.tapeBody, [
+        { transform: 'translateY(-150%) rotate(4deg)', opacity: 0 },
+        { transform: 'translateY(-45%) rotate(1.5deg)', opacity: 1, offset: 0.42 },
+        { transform: 'translateY(3%) rotate(0deg)', opacity: 1, offset: 0.78 },
+        { transform: 'translateY(-1.2%)', opacity: 1, offset: 0.9 },
+        { transform: 'translateY(0)', opacity: 1 },
+      ], { duration: 640, easing: 'cubic-bezier(.3,.7,.4,1)' });
+      // 딸깍 — 데크가 살짝 눌림
+      els.deck.animate([
+        { transform: 'translateY(0)' }, { transform: 'translateY(2px)' }, { transform: 'translateY(0)' },
+      ], { duration: 180, easing: 'ease-out' });
+    } else {
+      await run(els.tapeBody, [
+        { transform: 'translateX(70%)', opacity: 0 },
+        { transform: 'translateX(-4%)', opacity: 1, offset: 0.75 },
+        { transform: 'translateX(0)', opacity: 1 },
+      ], { duration: 420, easing: 'cubic-bezier(.3,.7,.4,1)' });
+    }
+    els.tapeBody.getAnimations().forEach((a) => a.cancel());
+  }
+
+  async function swapCassette() {
+    if (swapping) { swapAgain = true; return; }
+    swapping = true;
+    appEl.classList.add('swapping');
+    do {
+      swapAgain = false;
+      await animOut();
+      setCassetteLabel(current());
+      await animIn();
+    } while (swapAgain);
+    swapping = false;
+    appEl.classList.remove('swapping');
+  }
+
+  function updateCassette() {
+    const it = current();
+    const id = it ? it.id : null;
+    if (labelId === undefined || reduceMotion || id === labelId) {
+      if (!swapping) setCassetteLabel(it);
+      return;
+    }
+    swapCassette();
+  }
+
+  // ---------------- 화면 그리기 ----------------
+  let bgFront = els.bgA;
+  let lastBg = '';
+  function setBackdrop(id) {
+    const src = id ? thumb(id) : '';
+    if (src === lastBg) return;
+    lastBg = src;
     const back = bgFront === els.bgA ? els.bgB : els.bgA;
     if (src) {
       back.onload = () => { back.classList.add('show'); bgFront.classList.remove('show'); bgFront = back; };
@@ -335,8 +521,8 @@
     if (it) {
       els.title.textContent = it.title;
       els.artist.textContent = it.author || ' ';
-      els.lp.setAttribute('aria-label', `${expanded ? '' : '펼치기 — '}${it.title}`);
-      els.lp.title = it.title;
+      els.tape.title = it.title;
+      if (!expanded) els.tape.setAttribute('aria-label', `펼치기 — ${it.title}`);
       document.title = `${it.title} — TuneDeck`;
       api?.nowPlaying(it.title);
       if ('mediaSession' in navigator && window.MediaMetadata) {
@@ -347,65 +533,107 @@
       }
     } else {
       els.title.textContent = '아직 재생 중인 곡이 없어요';
-      els.artist.textContent = '아래 칸에 유튜브 링크를 붙여넣어 보세요';
-      els.lp.title = 'TuneDeck';
+      els.artist.textContent = '아래에서 듣고 싶은 곡을 검색해 보세요';
+      els.tape.title = 'TuneDeck';
       document.title = 'TuneDeck';
       api?.nowPlaying('');
     }
-    setCover(it && it.id);
+    setBackdrop(it && it.id);
+    updateCassette();
   }
 
-  const X_ICON = '<svg viewBox="0 0 14 14" aria-hidden="true"><path d="M3 3l8 8M11 3l-8 8"/></svg>';
+  const ICON_X = '<svg viewBox="0 0 14 14" aria-hidden="true"><path d="M3 3l8 8M11 3l-8 8"/></svg>';
+  const ICON_PLUS = '<svg viewBox="0 0 14 14" aria-hidden="true"><path d="M7 2v10M2 7h10"/></svg>';
+  const ICON_CHECK = '<svg viewBox="0 0 14 14" aria-hidden="true"><path d="M2.5 7.5l3 3 6-7"/></svg>';
+
+  function makeItem(it, { cls = '', actIcon, actLabel, actClass = '' }) {
+    const li = document.createElement('li');
+    li.className = 'item' + cls;
+    li.tabIndex = 0;
+
+    const th = document.createElement('span');
+    th.className = 'thumb';
+    const img = document.createElement('img');
+    img.loading = 'lazy';
+    img.alt = '';
+    img.src = thumb(it.id);
+    th.appendChild(img);
+    if (it.duration) {
+      const d = document.createElement('span');
+      d.className = 'dur';
+      d.textContent = it.duration;
+      th.appendChild(d);
+    }
+
+    const text = document.createElement('span');
+    text.className = 'text';
+    const t = document.createElement('div');
+    t.className = 't';
+    t.textContent = it.title;
+    const a = document.createElement('div');
+    a.className = 'a';
+    a.textContent = it.author || ' ';
+    text.append(t, a);
+
+    const act = document.createElement('button');
+    act.className = 'act ' + actClass;
+    act.type = 'button';
+    act.title = actLabel;
+    act.setAttribute('aria-label', `${it.title} ${actLabel}`);
+    act.innerHTML = actIcon;
+
+    li.append(th, text, act);
+    return li;
+  }
 
   function renderQueue() {
     const q = els.queue;
     q.textContent = '';
-    els.count.textContent = state.items.length ? `${state.items.length}곡` : '';
+    els.count.textContent = state.items.length ? String(state.items.length) : '';
     if (!state.items.length) {
       const li = document.createElement('li');
       li.className = 'empty-list';
-      li.textContent = '재생목록이 비어 있어요. 링크를 추가하거나 창에 끌어다 놓으세요.';
+      li.textContent = '재생목록이 비어 있어요. 위에서 곡을 검색해 추가해 보세요.';
       q.appendChild(li);
       return;
     }
     state.items.forEach((it, i) => {
-      const li = document.createElement('li');
-      li.className = 'item' + (i === state.index ? ' current' : '') + (it.broken ? ' broken' : '');
-      li.tabIndex = 0;
+      const li = makeItem(it, {
+        cls: (i === state.index ? ' current' : '') + (it.broken ? ' broken' : ''),
+        actIcon: ICON_X, actLabel: '재생목록에서 빼기',
+      });
       li.draggable = true;
       li.dataset.i = i;
-      li.title = it.broken ? '재생할 수 없는 영상' : it.title;
-
-      const th = document.createElement('span');
-      th.className = 'thumb';
-      const img = document.createElement('img');
-      img.loading = 'lazy';
-      img.alt = '';
-      img.src = thumb(it.id);
-      th.appendChild(img);
-
-      const text = document.createElement('span');
-      text.className = 'text';
-      const t = document.createElement('div');
-      t.className = 't';
-      t.textContent = it.title;
-      const a = document.createElement('div');
-      a.className = 'a';
-      a.textContent = it.author || ' ';
-      text.append(t, a);
-
-      const rm = document.createElement('button');
-      rm.className = 'rm';
-      rm.type = 'button';
-      rm.title = '재생목록에서 빼기';
-      rm.setAttribute('aria-label', `${it.title} 빼기`);
-      rm.innerHTML = X_ICON;
-
-      li.append(th, text, rm);
+      if (it.broken) li.title = '재생할 수 없는 영상';
       q.appendChild(li);
     });
     const cur = q.querySelector('.current');
-    if (cur && expanded) cur.scrollIntoView({ block: 'nearest' });
+    if (cur && expanded && !q.hidden) cur.scrollIntoView({ block: 'nearest' });
+  }
+
+  function renderResults() {
+    const box = els.results;
+    box.textContent = '';
+    if (!results.length) {
+      const li = document.createElement('li');
+      li.className = 'empty-list';
+      li.textContent = '검색어를 입력하면 결과가 여기에 나와요.';
+      box.appendChild(li);
+      return;
+    }
+    results.forEach((r, i) => {
+      const inQueue = state.items.some((it) => it.id === r.id);
+      const playingNow = current() && current().id === r.id;
+      const li = makeItem(r, {
+        cls: playingNow ? ' current' : '',
+        actIcon: inQueue ? ICON_CHECK : ICON_PLUS,
+        actLabel: inQueue ? '재생목록에 있음' : '재생목록에 추가',
+        actClass: inQueue ? 'done' : '',
+      });
+      li.dataset.r = i;
+      li.title = '클릭하면 바로 재생';
+      box.appendChild(li);
+    });
   }
 
   function removeAt(i) {
@@ -422,11 +650,13 @@
         const ni = Math.min(i, state.items.length - 1);
         state.index = -1;
         playAt(ni, { autoplay: isPlaying });
+        renderResults();
         return;
       }
     }
     renderNow();
     renderQueue();
+    renderResults();
     save();
   }
 
@@ -441,12 +671,12 @@
     save();
   }
 
-  // ---------------- 재생목록 이벤트 ----------------
+  // ---------------- 목록 이벤트 ----------------
   els.queue.addEventListener('click', (e) => {
     const li = e.target.closest('.item');
     if (!li) return;
     const i = +li.dataset.i;
-    if (e.target.closest('.rm')) return removeAt(i);
+    if (e.target.closest('.act')) return removeAt(i);
     if (i === state.index) togglePlay();
     else playAt(i);
   });
@@ -456,6 +686,29 @@
     const i = +li.dataset.i;
     if (e.key === 'Enter') { e.preventDefault(); playAt(i); }
     if (e.key === 'Delete') { e.preventDefault(); removeAt(i); }
+  });
+
+  els.results.addEventListener('click', (e) => {
+    const li = e.target.closest('.item');
+    if (!li) return;
+    const r = results[+li.dataset.r];
+    if (!r) return;
+    if (e.target.closest('.act')) {
+      if (state.items.some((it) => it.id === r.id)) return;
+      addVideo(r.id, { meta: r });
+      say(`재생목록에 추가했어요: ${r.title}`);
+      if (state.index < 0) playAt(state.items.length - 1);
+      return;
+    }
+    if (current() && current().id === r.id) togglePlay();
+    else playNow(r);
+  });
+  els.results.addEventListener('keydown', (e) => {
+    const li = e.target.closest('.item');
+    if (!li || e.key !== 'Enter') return;
+    e.preventDefault();
+    const r = results[+li.dataset.r];
+    if (r) playNow(r);
   });
 
   // 끌어서 순서 바꾸기
@@ -497,7 +750,7 @@
     move(dragFrom, to);
   });
 
-  // 다른 곳(브라우저 주소창 등)에서 링크를 끌어다 놓기
+  // 브라우저에서 유튜브 링크를 끌어다 놓기
   document.addEventListener('dragover', (e) => {
     if (dragFrom >= 0) return;
     e.preventDefault();
@@ -511,25 +764,9 @@
     e.preventDefault();
     appEl.classList.remove('drop-hint');
     const text = e.dataTransfer.getData('text/uri-list') || e.dataTransfer.getData('text/plain');
-    if (!text) return;
+    if (!text || !parseLink(text.split('\n')[0])) return;
     if (!expanded) await expand();
     addFromText(text.split('\n')[0]);
-  });
-
-  // ---------------- 추가 폼 ----------------
-  els.form.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const v = els.input.value;
-    if (!v.trim()) { els.input.focus(); return; }
-    const ok = await addFromText(v);
-    if (ok) els.input.value = '';
-  });
-
-  // 입력칸 밖에서 Ctrl+V 해도 바로 추가
-  document.addEventListener('paste', (e) => {
-    if (e.target === els.input) return;
-    const text = e.clipboardData.getData('text');
-    if (text) { e.preventDefault(); addFromText(text); }
   });
 
   // ---------------- 컨트롤 ----------------
@@ -579,9 +816,13 @@
     seeking = false;
   });
   setInterval(() => {
-    if (!playerReady || seeking || !expanded) return;
+    if (!playerReady || !current()) return;
     const d = player.getDuration() || 0;
     const t = player.getCurrentTime() || 0;
+    if (!swapping && player.getVideoData && player.getVideoData().video_id === current().id) {
+      setSpools(d ? t / d : 0); // 감긴 테이프 양이 진행에 따라 바뀜
+    }
+    if (!expanded || seeking) return;
     els.cur.textContent = fmt(t);
     els.dur.textContent = fmt(d);
     els.seek.value = d ? Math.round((t / d) * 1000) : 0;
@@ -595,9 +836,9 @@
   async function expand() {
     if (expanded || busy) return;
     busy = true;
-    lpStartTop = api ? await api.prepareExpand() : 6;
+    startTop = api ? await api.prepareExpand() : 6;
     appEl.classList.add('no-anim');
-    appEl.style.setProperty('--lp-top', lpStartTop + 'px');
+    appEl.style.setProperty('--lp-top', startTop + 'px');
     await api?.expand();
     await frame();
     appEl.classList.remove('no-anim');
@@ -606,7 +847,7 @@
     appEl.classList.add('expanded');
     els.panel.setAttribute('aria-hidden', 'false');
     expanded = true;
-    els.lp.setAttribute('aria-label', '지금 재생 중인 LP');
+    els.tape.setAttribute('aria-label', '데크에 꽂힌 카세트');
     renderQueue();
     await wait(560);
     busy = false;
@@ -634,21 +875,20 @@
   els.collapse.addEventListener('click', collapse);
   $('quitBtn').addEventListener('click', () => api?.quit());
 
-  // 자동 업데이트 알림
   api?.onUpdateReady((v) => {
     $('updateText').textContent = `새 버전 ${v}이 준비됐어요`;
     $('updateBar').hidden = false;
   });
   $('updateBtn').addEventListener('click', () => api?.applyUpdate());
 
-  // LP: 접힌 상태에서는 클릭=펼치기, 위아래로 끌기=위치 옮기기
+  // 카세트: 접힌 상태에서는 클릭=펼치기, 위아래로 끌기=위치 옮기기
   let press = null;
-  els.lp.addEventListener('pointerdown', (e) => {
+  els.tape.addEventListener('pointerdown', (e) => {
     if (expanded || e.button !== 0) return;
     press = { y: e.screenY, dragging: false };
-    els.lp.setPointerCapture(e.pointerId);
+    els.tape.setPointerCapture(e.pointerId);
   });
-  els.lp.addEventListener('pointermove', (e) => {
+  els.tape.addEventListener('pointermove', (e) => {
     if (!press) return;
     if (!press.dragging && Math.abs(e.screenY - press.y) > 4) {
       press.dragging = true;
@@ -656,26 +896,27 @@
     }
     if (press.dragging) api?.dragMove(e.screenY);
   });
-  els.lp.addEventListener('pointerup', () => {
+  els.tape.addEventListener('pointerup', () => {
     if (!press) return;
     const wasDrag = press.dragging;
     press = null;
     if (wasDrag) api?.dragEnd();
     else expand();
   });
-  els.lp.addEventListener('keydown', (e) => {
+  els.tape.addEventListener('keydown', (e) => {
     if ((e.key === 'Enter' || e.key === ' ') && !expanded) { e.preventDefault(); expand(); }
   });
-  els.lp.addEventListener('click', (e) => e.preventDefault());
+  els.tape.addEventListener('click', (e) => e.preventDefault());
 
   // 키보드
   document.addEventListener('keydown', (e) => {
-    const typing = e.target === els.input;
-    if (e.key === 'Escape') { if (typing) els.input.blur(); else collapse(); return; }
+    const typing = e.target.tagName === 'INPUT' && e.target.type !== 'range';
+    if (e.key === 'Escape') { if (typing) e.target.blur(); else collapse(); return; }
     if (typing || !expanded) return;
     if (e.key === ' ' && !e.target.closest('button, .item')) { e.preventDefault(); togglePlay(); }
     else if (e.key === 'ArrowRight' && e.altKey) next(false);
     else if (e.key === 'ArrowLeft' && e.altKey) prev();
+    else if (e.key === '/' || (e.ctrlKey && e.key.toLowerCase() === 'f')) { e.preventDefault(); els.searchInput.focus(); }
   });
 
   // 트레이·전역 단축키·미디어 키
@@ -705,9 +946,13 @@
     renderModes();
     renderNow();
     renderQueue();
+    renderResults();
     if (playerReady && current()) player.cueVideoById(current().id);
   })();
 
   // 미리보기/테스트용
-  window.__tunedeck = { state, expand, collapse, renderNow, renderQueue, setPlaying, parseLink };
+  window.__tunedeck = {
+    state, expand, collapse, renderNow, renderQueue, setPlaying, parseLink, playAt, setSpools,
+    setResults: (r) => { results = r; renderResults(); }, showTab,
+  };
 })();

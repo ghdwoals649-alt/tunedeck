@@ -11,10 +11,13 @@ const updater = require('./updater');
 const APP_VERSION = JSON.parse(fs.readFileSync(path.join(__dirname, 'package.json'), 'utf8')).version;
 let updateReady = null;
 
-// 접힌 창: 카세트(220x140)의 왼쪽 절반만 보이도록 폭 122 (그림자 여백 12)
-const COLLAPSED = { w: 122, h: 152, lpTop: 6 };
-const EXPANDED_W = 400;
-const EXPANDED_MAX_H = 920;
+// 접힌 창: 카세트 전체(154x98) + 그림자 여백 12
+const TAPE = { w: 154, h: 98, pad: 12 };
+const COLLAPSED = { w: TAPE.w + TAPE.pad * 2, h: TAPE.h + TAPE.pad * 2 };
+// 펼친 창 안에서 데크에 꽂힌 카세트 위치/크기 (renderer/style.css 와 같은 값)
+const SLOT = { x: 35, y: 55, w: 210, h: 134 };
+const EXPANDED_W = 280;
+const EXPANDED_MAX_H = 620;
 
 let win = null;
 let tray = null;
@@ -49,27 +52,55 @@ if (!app.requestSingleInstanceLock()) {
 // ---------- 위치 계산 ----------
 const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
 
-function currentArea() {
-  const ref = win ? win.getBounds() : screen.getCursorScreenPoint();
-  return screen.getDisplayNearestPoint({ x: ref.x, y: ref.y }).workArea;
+const areaAt = (x, y) => screen.getDisplayNearestPoint({ x: Math.round(x), y: Math.round(y) }).workArea;
+
+// 접힌 카세트 창의 위치 (사용자가 끌어다 놓은 곳)
+let dock = null;
+let movedWhileExpanded = false;
+
+function clampDock(d) {
+  const wa = areaAt(d.x + COLLAPSED.w / 2, d.y + COLLAPSED.h / 2);
+  return {
+    x: clamp(Math.round(d.x), wa.x, wa.x + wa.width - COLLAPSED.w),
+    y: clamp(Math.round(d.y), wa.y, wa.y + wa.height - COLLAPSED.h),
+  };
+}
+
+function getDock() {
+  if (dock) return dock;
+  const saved = settings().dock;
+  if (saved && Number.isFinite(saved.x) && Number.isFinite(saved.y)) {
+    dock = clampDock(saved);
+  } else {
+    const wa = screen.getPrimaryDisplay().workArea;
+    dock = clampDock({ x: wa.x + wa.width - COLLAPSED.w - 24, y: wa.y + wa.height * 0.35 });
+  }
+  return dock;
+}
+
+function setDock(d) {
+  dock = clampDock(d);
+  saveSettings({ dock });
 }
 
 function collapsedBounds() {
-  const wa = currentArea();
-  const savedY = settings().dockY;
-  const y = clamp(savedY ?? Math.round(wa.y + wa.height * 0.38), wa.y, wa.y + wa.height - COLLAPSED.h);
-  return { x: wa.x + wa.width - COLLAPSED.w, y, width: COLLAPSED.w, height: COLLAPSED.h };
+  const d = getDock();
+  return { x: d.x, y: d.y, width: COLLAPSED.w, height: COLLAPSED.h };
 }
 
+// 카세트 중심이 그대로 있도록 펼친 창을 배치 (화면 밖으로 나가면 안쪽으로 밀어 넣음)
 function expandedBounds() {
-  const wa = currentArea();
-  const col = collapsedBounds();
-  const height = Math.min(wa.height - 40, EXPANDED_MAX_H);
-  const y = clamp(col.y - 22, wa.y + 20, wa.y + wa.height - height - 20);
+  const d = getDock();
+  const cx = d.x + TAPE.pad + TAPE.w / 2;
+  const cy = d.y + TAPE.pad + TAPE.h / 2;
+  const wa = areaAt(cx, cy);
+  const height = Math.min(wa.height - 20, EXPANDED_MAX_H);
+  const x = clamp(Math.round(cx - (SLOT.x + SLOT.w / 2)), wa.x, wa.x + wa.width - EXPANDED_W);
+  const y = clamp(Math.round(cy - (SLOT.y + SLOT.h / 2)), wa.y, wa.y + wa.height - height);
   return {
-    bounds: { x: wa.x + wa.width - EXPANDED_W, y, width: EXPANDED_W, height },
-    // 펼친 창 안에서 LP가 처음 있어야 할 위치 (접힌 상태와 같은 화면 위치)
-    lpStartTop: col.y - y + COLLAPSED.lpTop,
+    bounds: { x, y, width: EXPANDED_W, height },
+    // 펼친 창 안에서 카세트가 처음 있어야 할 위치 (접힌 상태와 같은 화면 위치)
+    start: { left: d.x + TAPE.pad - x, top: d.y + TAPE.pad - y },
   };
 }
 
@@ -201,30 +232,53 @@ ipcMain.handle('oembed', async (_e, id) => {
   }
 });
 
-ipcMain.handle('win:prepareExpand', () => expandedBounds().lpStartTop);
+ipcMain.handle('win:prepareExpand', () => expandedBounds().start);
 ipcMain.handle('win:expand', () => {
   applyBounds(expandedBounds().bounds);
   expanded = true;
+  movedWhileExpanded = false;
   win.focus();
+});
+// 접기 직전: 카세트가 돌아갈 위치(펼친 창 기준 좌표)를 알려줌
+ipcMain.handle('win:prepareCollapse', () => {
+  const b = win.getBounds();
+  if (movedWhileExpanded) {
+    // 펼친 상태에서 창을 옮겼으면, 데크 위치에서 그대로 접힘
+    setDock({
+      x: b.x + SLOT.x + SLOT.w / 2 - TAPE.w / 2 - TAPE.pad,
+      y: b.y + SLOT.y + SLOT.h / 2 - TAPE.h / 2 - TAPE.pad,
+    });
+  }
+  const d = getDock();
+  return { left: d.x + TAPE.pad - b.x, top: d.y + TAPE.pad - b.y };
 });
 ipcMain.handle('win:collapse', () => {
   applyBounds(collapsedBounds());
   expanded = false;
 });
 
-ipcMain.on('dock:start', (_e, screenY) => {
-  drag = { startY: screenY, startTop: win.getBounds().y };
+// 끌어서 옮기기 (접힌 카세트, 또는 펼친 창의 위쪽/카세트)
+ipcMain.on('dock:start', (_e, sx, sy) => {
+  const b = win.getBounds();
+  drag = { sx, sy, x: b.x, y: b.y };
 });
-ipcMain.on('dock:move', (_e, screenY) => {
-  if (!drag || expanded) return;
-  const wa = currentArea();
-  const y = clamp(Math.round(drag.startTop + screenY - drag.startY), wa.y, wa.y + wa.height - COLLAPSED.h);
-  applyBounds({ x: wa.x + wa.width - COLLAPSED.w, y, width: COLLAPSED.w, height: COLLAPSED.h });
+ipcMain.on('dock:move', (_e, sx, sy) => {
+  if (!drag) return;
+  const b = win.getBounds();
+  let x = drag.x + (sx - drag.sx);
+  let y = drag.y + (sy - drag.sy);
+  const wa = areaAt(x + b.width / 2, y + b.height / 2);
+  x = clamp(x, wa.x - b.width + 60, wa.x + wa.width - 60);
+  y = clamp(y, wa.y, wa.y + wa.height - 40);
+  win.setPosition(Math.round(x), Math.round(y));
 });
 ipcMain.on('dock:end', () => {
   if (!drag) return;
   drag = null;
-  saveSettings({ dockY: win.getBounds().y });
+  const b = win.getBounds();
+  if (expanded) movedWhileExpanded = true;
+  else setDock({ x: b.x, y: b.y });
+  if (!expanded) applyBounds(collapsedBounds()); // 화면 안쪽으로 맞춤
 });
 
 ipcMain.on('app:quit', () => { isQuitting = true; app.quit(); });
@@ -352,7 +406,11 @@ function buildTrayMenu() {
     },
     {
       label: '카세트 위치 초기화',
-      click: () => { saveSettings({ dockY: null }); if (!expanded) applyBounds(collapsedBounds()); },
+      click: () => {
+        dock = null;
+        saveSettings({ dock: null });
+        if (!expanded) applyBounds(collapsedBounds());
+      },
     },
     { type: 'separator' },
     updateReady
@@ -394,9 +452,12 @@ app.whenReady().then(async () => {
   setInterval(checkForUpdate, 3 * 60 * 60 * 1000);
 
   // 해상도나 모니터 구성이 바뀌면 다시 가장자리에 붙이기
-  screen.on('display-metrics-changed', () => {
+  const refit = () => {
+    if (dock) dock = clampDock(dock);
     applyBounds(expanded ? expandedBounds().bounds : collapsedBounds());
-  });
+  };
+  screen.on('display-metrics-changed', refit);
+  screen.on('display-removed', refit);
 });
 
 app.on('before-quit', () => { isQuitting = true; });

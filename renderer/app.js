@@ -34,7 +34,6 @@
   let isPlaying = false;
   let expanded = false;
   let busy = false;
-  let startTop = 6;
   let seeking = false;
   let errorStreak = 0;
   let history = [];
@@ -49,8 +48,6 @@
     say(loaded
       ? '유튜브 플레이어가 응답하지 않아요. 종료 후 다시 실행해 보세요.'
       : 'youtube.com에 연결하지 못했어요. 인터넷 연결이나 방화벽·백신의 차단 여부를 확인해 주세요.', true);
-    document.querySelector('.video-empty').textContent = '유튜브 플레이어를 불러오지 못했어요';
-    appEl.classList.remove('has-track');
   }, 10000);
 
   const thumb = (id) => `https://i.ytimg.com/vi/${id}/mqdefault.jpg`;
@@ -433,9 +430,24 @@
   }
 
   // 곡이 바뀌면: 테이프를 꺼내고 → 라벨 교체 → 새 테이프를 넣는다
-  const run = (el, frames, opts) => el.animate(frames, { fill: 'forwards', ...opts }).finished.catch(() => {});
+  // 애니메이션이 어떤 이유로 끝 신호를 못 받아도 정해진 시간 뒤엔 반드시 다음으로 넘어감
+  const run = (el, frames, opts) => {
+    let anim;
+    try { anim = el.animate(frames, { fill: 'forwards', ...opts }); } catch { return Promise.resolve(); }
+    return Promise.race([
+      anim.finished.catch(() => {}),
+      new Promise((r) => setTimeout(r, (opts.duration || 0) + 200)),
+    ]);
+  };
+  // 카세트를 확실히 보이는 원래 상태로 되돌림
+  function resetTape() {
+    els.tapeBody.getAnimations().forEach((a) => a.cancel());
+    els.tapeBody.style.transform = 'none';
+    els.tapeBody.style.opacity = '1';
+  }
   let swapping = false;
   let swapAgain = false;
+  let labelApplied = false;
 
   async function animOut() {
     if (expanded) {
@@ -446,9 +458,9 @@
       ], { duration: 420, easing: 'cubic-bezier(.5,0,.75,0)' });
     } else {
       await run(els.tapeBody, [
-        { transform: 'translateX(0)', opacity: 1 },
-        { transform: 'translateX(70%)', opacity: 0 },
-      ], { duration: 320, easing: 'ease-in' });
+        { transform: 'translateY(0) scale(1)', opacity: 1 },
+        { transform: 'translateY(-30%) scale(.9)', opacity: 0 },
+      ], { duration: 300, easing: 'ease-in' });
     }
   }
 
@@ -467,26 +479,32 @@
       ], { duration: 180, easing: 'ease-out' });
     } else {
       await run(els.tapeBody, [
-        { transform: 'translateX(70%)', opacity: 0 },
-        { transform: 'translateX(-4%)', opacity: 1, offset: 0.75 },
-        { transform: 'translateX(0)', opacity: 1 },
+        { transform: 'translateY(-30%) scale(.9)', opacity: 0 },
+        { transform: 'translateY(4%) scale(1)', opacity: 1, offset: 0.75 },
+        { transform: 'translateY(0) scale(1)', opacity: 1 },
       ], { duration: 420, easing: 'cubic-bezier(.3,.7,.4,1)' });
     }
-    els.tapeBody.getAnimations().forEach((a) => a.cancel());
+    resetTape();
   }
 
   async function swapCassette() {
-    if (swapping) { swapAgain = true; return; }
+    if (swapping) { if (labelApplied) swapAgain = true; return; }
     swapping = true;
     appEl.classList.add('swapping');
-    do {
-      swapAgain = false;
-      await animOut();
-      setCassetteLabel(current());
-      await animIn();
-    } while (swapAgain);
-    swapping = false;
-    appEl.classList.remove('swapping');
+    try {
+      do {
+        swapAgain = false;
+        labelApplied = false;
+        await animOut();
+        setCassetteLabel(current()); // 꺼낸 사이에 최신 곡으로 라벨 교체
+        labelApplied = true;
+        await animIn();
+      } while (swapAgain && current() && current().id !== labelId);
+    } finally {
+      resetTape();
+      swapping = false;
+      appEl.classList.remove('swapping');
+    }
   }
 
   function updateCassette() {
@@ -816,6 +834,8 @@
     seeking = false;
   });
   setInterval(() => {
+    // 안전장치: 교체 중이 아닌데 카세트가 안 보이면 원래대로 되돌림
+    if (!swapping && parseFloat(getComputedStyle(els.tapeBody).opacity) < 0.5) resetTape();
     if (!playerReady || !current()) return;
     const d = player.getDuration() || 0;
     const t = player.getCurrentTime() || 0;
@@ -832,13 +852,17 @@
   // ---------------- 접기 / 펼치기 ----------------
   const wait = (ms) => new Promise((r) => setTimeout(r, ms));
   const frame = () => new Promise((r) => requestAnimationFrame(() => r()));
+  const setStart = (p) => {
+    appEl.style.setProperty('--start-left', p.left + 'px');
+    appEl.style.setProperty('--start-top', p.top + 'px');
+  };
 
   async function expand() {
     if (expanded || busy) return;
     busy = true;
-    startTop = api ? await api.prepareExpand() : 6;
+    const start = api ? await api.prepareExpand() : { left: 12, top: 12 };
     appEl.classList.add('no-anim');
-    appEl.style.setProperty('--lp-top', startTop + 'px');
+    setStart(start);
     await api?.expand();
     await frame();
     appEl.classList.remove('no-anim');
@@ -856,6 +880,8 @@
   async function collapse() {
     if (!expanded || busy) return;
     busy = true;
+    const back = api ? await api.prepareCollapse() : { left: 12, top: 12 };
+    setStart(back);
     expanded = false;
     appEl.classList.remove('expanded');
     appEl.classList.add('collapsed');
@@ -863,7 +889,7 @@
     document.activeElement?.blur();
     await wait(560);
     appEl.classList.add('no-anim');
-    appEl.style.setProperty('--lp-top', '6px');
+    setStart({ left: 12, top: 12 });
     await api?.collapse();
     await frame();
     appEl.classList.remove('no-anim');
@@ -881,32 +907,48 @@
   });
   $('updateBtn').addEventListener('click', () => api?.applyUpdate());
 
-  // 카세트: 접힌 상태에서는 클릭=펼치기, 위아래로 끌기=위치 옮기기
+  // 끌어서 옮기기: 접힌 카세트는 어디든, 펼친 상태에선 위쪽 빈 곳이나 카세트를 잡고
   let press = null;
-  els.tape.addEventListener('pointerdown', (e) => {
-    if (expanded || e.button !== 0) return;
-    press = { y: e.screenY, dragging: false };
-    els.tape.setPointerCapture(e.pointerId);
-  });
-  els.tape.addEventListener('pointermove', (e) => {
+  function startPress(e, el, clickAction) {
+    if (e.button !== 0 || busy) return;
+    press = { x: e.screenX, y: e.screenY, dragging: false, clickAction };
+    el.setPointerCapture(e.pointerId);
+  }
+  function movePress(e) {
     if (!press) return;
-    if (!press.dragging && Math.abs(e.screenY - press.y) > 4) {
+    if (!press.dragging && Math.hypot(e.screenX - press.x, e.screenY - press.y) > 4) {
       press.dragging = true;
-      api?.dragStart(press.y);
+      document.body.style.cursor = 'grabbing';
+      api?.dragStart(press.x, press.y);
     }
-    if (press.dragging) api?.dragMove(e.screenY);
-  });
-  els.tape.addEventListener('pointerup', () => {
+    if (press.dragging) api?.dragMove(e.screenX, e.screenY);
+  }
+  function endPress() {
     if (!press) return;
-    const wasDrag = press.dragging;
+    const { dragging, clickAction } = press;
     press = null;
-    if (wasDrag) api?.dragEnd();
-    else expand();
-  });
+    document.body.style.cursor = '';
+    if (dragging) api?.dragEnd();
+    else if (clickAction) clickAction();
+  }
+
+  els.tape.addEventListener('pointerdown', (e) => startPress(e, els.tape, expanded ? null : expand));
+  els.tape.addEventListener('pointermove', movePress);
+  els.tape.addEventListener('pointerup', endPress);
+  els.tape.addEventListener('pointercancel', endPress);
   els.tape.addEventListener('keydown', (e) => {
     if ((e.key === 'Enter' || e.key === ' ') && !expanded) { e.preventDefault(); expand(); }
   });
   els.tape.addEventListener('click', (e) => e.preventDefault());
+
+  const topbar = document.querySelector('.topbar');
+  topbar.addEventListener('pointerdown', (e) => {
+    if (e.target.closest('button, input, label')) return;
+    startPress(e, topbar, null);
+  });
+  topbar.addEventListener('pointermove', movePress);
+  topbar.addEventListener('pointerup', endPress);
+  topbar.addEventListener('pointercancel', endPress);
 
   // 키보드
   document.addEventListener('keydown', (e) => {

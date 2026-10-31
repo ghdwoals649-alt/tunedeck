@@ -47,11 +47,6 @@
       </div>
 
       <section class="now">
-        <div class="video-wrap">
-          <div id="player"></div>
-          <p class="video-empty">곡을 검색하거나 링크를 넣으면 여기서 재생돼요</p>
-        </div>
-
         <div class="meta">
           <h1 id="title">아직 재생 중인 곡이 없어요</h1>
           <p id="artist">아래에서 듣고 싶은 곡을 검색해 보세요</p>
@@ -86,7 +81,7 @@
 
       <form id="searchForm" class="search" autocomplete="off" role="search">
         <svg class="search-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="M16 16l4 4"/></svg>
-        <input id="searchInput" type="text" placeholder="노래, 가수 검색 또는 유튜브 링크" aria-label="노래 검색 또는 유튜브 링크">
+        <input id="searchInput" type="text" placeholder="노래·가수 검색 또는 링크" aria-label="노래 검색 또는 유튜브 링크">
         <button type="submit">검색</button>
       </form>
       <p id="msg" class="msg" role="status" aria-live="polite"></p>
@@ -165,6 +160,8 @@
       </span>
     </button>
 
+    <!-- 소리만 재생: YouTube 플레이어는 보이지 않게 둔다 -->
+    <div id="playerHost" aria-hidden="true"><div id="player"></div></div>
     <div id="resolver" aria-hidden="true"></div>
   </div>
 

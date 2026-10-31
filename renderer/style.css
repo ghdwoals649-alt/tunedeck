@@ -226,27 +226,6 @@ svg { display: block; }
 }
 .progress span:last-child { text-align: right; }
 
-/* 재생 속도 (0.5×~2×) */
-.speed {
-  display: grid;
-  grid-template-columns: 34px 1fr 34px;
-  align-items: center;
-  gap: 6px;
-  font-size: 10.5px;
-  color: var(--paper-dim);
-}
-.speed-val {
-  padding: 0;
-  border: 0;
-  background: none;
-  color: var(--paper-dim);
-  font: 600 10.5px var(--sans);
-  font-variant-numeric: tabular-nums;
-  text-align: right;
-  cursor: pointer;
-}
-.speed-val:hover { color: var(--paper); }
-.speed.changed .speed-val { color: var(--brass); }
 
 input[type='range'] {
   -webkit-appearance: none;
@@ -656,7 +635,7 @@ input[type='range']:focus-visible::-webkit-slider-thumb { transform: scale(1); }
 .front .spool-l { transform: scale(var(--sl, 1)); }
 .front .spool-r { transform: scale(var(--sr, 0.47)); }
 .front .tape-line { stroke: #3d2b20; stroke-width: 2; }
-.front .hub { transform-box: fill-box; transform-origin: center; animation: reel calc(2.4s / var(--rate, 1)) linear infinite paused; }
+.front .hub { transform-box: fill-box; transform-origin: center; animation: reel 2.4s linear infinite paused; }
 .playing .front .hub { animation-play-state: running; }
 .swapping .front .hub { animation-play-state: paused; }
 @keyframes reel { to { transform: rotate(360deg); } }
@@ -744,7 +723,7 @@ input[type='range']:focus-visible::-webkit-slider-thumb { transform: scale(1); }
   inset: 0;
   border-radius: 50%;
   overflow: hidden;
-  animation: reel calc(6s / var(--rate, 1)) linear infinite paused; /* LP: 보기 편한 속도 × 재생 속도 */
+  animation: reel 6s linear infinite paused; /* LP: 보기 편한 속도 */
 }
 .playing .disc-body .platter { animation-play-state: running; }
 .swapping .disc-body .platter { animation-play-state: paused; }
@@ -791,7 +770,7 @@ input[type='range']:focus-visible::-webkit-slider-thumb { transform: scale(1); }
 /* CD */
 .cd-body { box-shadow: 0 4px 10px rgba(0, 0, 0, 0.45); }
 .cd-body .platter {
-  animation-duration: calc(4.5s / var(--rate, 1)); /* CD */
+  animation-duration: 4.5s; /* CD */
   background: conic-gradient(from 0deg, #d9dde4, #f5f6f8, #c4cad3, #eef0f3, #cfd4dc, #f5f6f8, #d9dde4);
 }
 .cd-print {
@@ -921,7 +900,7 @@ input[type='range']:focus-visible::-webkit-slider-thumb { transform: scale(1); }
 .washer-body .w-drum {
   inset: 13%;
   background: #2b3038;
-  animation-duration: calc(2.4s / var(--rate, 1));
+  animation-duration: 2.4s;
 }
 .w-drum img { width: 100%; height: 100%; object-fit: cover; opacity: 0; transition: opacity 0.4s; }
 .w-drum img.show { opacity: 0.85; }
@@ -942,7 +921,7 @@ input[type='range']:focus-visible::-webkit-slider-thumb { transform: scale(1); }
 
 /* 자동차 바퀴 */
 .tire-body { box-shadow: 0 5px 12px rgba(0, 0, 0, 0.5); }
-.tire-body .platter { animation-duration: calc(2.6s / var(--rate, 1)); background: transparent; }
+.tire-body .platter { animation-duration: 2.6s; background: transparent; }
 .tire-body svg { position: absolute; inset: 0; width: 100%; height: 100%; }
 .w-tread { fill: none; stroke: #0a0a0b; stroke-width: 2.6; stroke-dasharray: 1.6 1.2; }
 .w-wallline { fill: none; stroke: rgba(255, 255, 255, 0.07); stroke-width: 0.6; }
@@ -979,7 +958,7 @@ input[type='range']:focus-visible::-webkit-slider-thumb { transform: scale(1); }
   background: radial-gradient(circle, rgba(52, 22, 92, 0.92) 0 55%, rgba(14, 8, 34, 0.94) 100%);
   box-shadow: 0 0 16px rgba(150, 120, 255, 0.55), 0 0 4px rgba(140, 230, 255, 0.8), inset 0 0 18px rgba(140, 220, 255, 0.35);
 }
-.magic-body .platter { animation-duration: calc(24s / var(--rate, 1)); overflow: visible; }
+.magic-body .platter { animation-duration: 24s; overflow: visible; }
 .magic-body svg { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
 .m-line { fill: none; stroke: #a8ecff; stroke-width: 1.1; }
 .m-thin { fill: none; stroke: rgba(168, 236, 255, 0.55); stroke-width: 0.6; }
@@ -989,7 +968,7 @@ input[type='range']:focus-visible::-webkit-slider-thumb { transform: scale(1); }
 .m-inner {
   position: absolute;
   inset: 0;
-  animation: reel-rev calc(14s / var(--rate, 1)) linear infinite paused;
+  animation: reel-rev 14s linear infinite paused;
 }
 .playing .m-inner { animation-play-state: running; }
 .swapping .m-inner { animation-play-state: paused; }
@@ -1119,6 +1098,28 @@ input[type='range']:focus-visible::-webkit-slider-thumb { transform: scale(1); }
 .skin-washer .viz { left: 26%; right: 26%; bottom: 12%; height: 22%; }
 .skin-tire .viz { left: 26%; right: 26%; bottom: 16%; height: 20%; }
 .skin-magic .viz { left: 24%; right: 24%; bottom: 14%; height: 22%; }
+
+/* ---------------- 이스터에그: 연필로 테이프 감기 ---------------- */
+.egg {
+  display: none;
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  pointer-events: none;
+}
+.rewinding .egg { display: block; }
+.egg .tangle { fill: none; stroke: #4a3324; stroke-width: 3.4; stroke-linecap: round; stroke-dasharray: 100; stroke-dashoffset: 100; }
+.egg .pencil { transform-box: view-box; transform-origin: 112px 77px; transform: translate(-70px, -110px); }
+.egg .p-eraser { fill: #f08aa0; }
+.egg .p-band { fill: #c9ccd2; }
+.egg .p-body { fill: #f5c542; stroke: #c99a1e; stroke-width: 0.6; }
+.egg .p-stripe { fill: #e3b02e; }
+.egg .p-wood { fill: #f1d3a5; }
+.egg .p-lead { fill: #2e2a26; }
+/* 연필로 감는 동안 릴이 빠르게 돎 */
+.cranking .front .hub { animation-duration: 0.35s !important; animation-play-state: running !important; }
 
 #resolver {
   position: fixed;

@@ -15,6 +15,7 @@ contextBridge.exposeInMainWorld('api', {
   nowPlaying: (title) => ipcRenderer.send('now-playing', title),
   onMedia: (cb) => ipcRenderer.on('media', (_e, action) => cb(action)),
   onToggle: (cb) => ipcRenderer.on('toggle', () => cb()),
+  onSleep: (cb) => ipcRenderer.on('sleep', () => cb()),
   quit: () => ipcRenderer.send('app:quit'),
   setOpacity: (v) => ipcRenderer.send('win:opacity', v),
   repaint: () => ipcRenderer.send('win:repaint'),

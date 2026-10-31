@@ -30,7 +30,6 @@
     volume: 80,
     opacity: 100,
     secrets: false, // 숨은 테마를 찾았는지
-    rate: 1, // 재생 속도 0.5~2
   };
   // 지금 테마의 본체 요소 — 교체 애니메이션은 이 요소에 적용
   let skin = 'cassette';
@@ -70,7 +69,7 @@
     saveTimer = setTimeout(() => {
       api?.saveState({
         items: state.items, index: state.index,
-        shuffle: state.shuffle, repeat: state.repeat, volume: state.volume, opacity: state.opacity, secrets: state.secrets, rate: state.rate,
+        shuffle: state.shuffle, repeat: state.repeat, volume: state.volume, opacity: state.opacity, secrets: state.secrets,
       });
     }, 250);
   }
@@ -401,7 +400,6 @@
           const S = YT.PlayerState;
           if (e.data === S.PLAYING) {
             setPlaying(true);
-            ensureRate(); // 새 곡을 틀면 YouTube가 속도를 1배로 되돌리므로 다시 맞춤
             errorStreak = 0;
             const it = current();
             if (it && it.broken) { delete it.broken; renderQueue(); save(); }
@@ -849,31 +847,6 @@
     const pct = ((input.value - input.min) / (input.max - input.min)) * 100;
     input.style.setProperty('--pct', pct + '%');
   }
-  // 재생 속도 (0.5×~2×, 0.25 단위). 카세트 릴·LP 회전도 같이 빨라지고 느려짐
-  const speedEl = $('speed');
-  const speedVal = $('speedVal');
-  const fmtRate = (r) => (Number.isInteger(r) ? String(r) : String(r).replace(/0+$/, '')) + '×';
-  function ensureRate() {
-    if (!playerReady || !player.setPlaybackRate) return;
-    try {
-      if (player.getPlaybackRate() !== state.rate) player.setPlaybackRate(state.rate);
-    } catch {}
-  }
-  function applyRate(persist = true) {
-    speedEl.value = state.rate;
-    paintRange(speedEl);
-    speedVal.textContent = fmtRate(state.rate);
-    speedEl.closest('.speed').classList.toggle('changed', state.rate !== 1);
-    document.documentElement.style.setProperty('--rate', String(state.rate));
-    ensureRate();
-    if (persist) save();
-  }
-  speedEl.addEventListener('input', () => {
-    state.rate = Math.max(0.5, Math.min(2, Math.round(+speedEl.value * 4) / 4));
-    applyRate();
-  });
-  speedVal.addEventListener('click', () => { state.rate = 1; applyRate(); });
-
   // 위젯 전체 투명도 (30~100%)
   function applyOpacity() {
     // 위젯 전체(패널·카세트·글자)를 흐리게 함. 창 자체의 투명도 기능(setOpacity)은 쓰지 않음.
@@ -1122,11 +1095,81 @@
   });
   $('updateBtn').addEventListener('click', () => api?.applyUpdate());
 
+  // ---------------- 이스터에그: 카세트를 좌우로 흔들면 테이프가 엉키고, 연필로 다시 감음 ----------------
+  let rewinding = false;
+  let lastRewind = 0;
+  function detectShake(x) {
+    if (!press || skin !== 'cassette' || rewinding || swapping) return;
+    const dx = x - press.lastX;
+    if (Math.abs(dx) < 6) return;
+    const dir = Math.sign(dx);
+    press.lastX = x;
+    if (press.dir && dir !== press.dir) {
+      const now = Date.now();
+      press.flips = press.flips.filter((t) => now - t < 1200);
+      press.flips.push(now);
+      if (press.flips.length >= 6 && now - lastRewind > 4000) {
+        press.flips = [];
+        lastRewind = now;
+        rewindEgg();
+      }
+    }
+    press.dir = dir;
+  }
+
+  async function rewindEgg() {
+    if (rewinding) return;
+    rewinding = true;
+    const egg = document.querySelector('.egg');
+    const tangle = egg.querySelector('.tangle');
+    const pencil = egg.querySelector('.pencil');
+    appEl.classList.add('rewinding');
+    try {
+      // 1) 테이프가 엉켜서 삐져나옴
+      await run(tangle, [{ strokeDashoffset: 100 }, { strokeDashoffset: 0 }], { duration: 650, easing: 'ease-out' });
+      say('앗, 테이프가 엉켰어요!');
+      // 2) 연필 등장 → 릴에 꽂힘
+      await run(pencil, [{ transform: 'translate(-70px, -110px)' }, { transform: 'translate(0px, 0px)' }],
+        { duration: 450, easing: 'cubic-bezier(.3,.7,.4,1)' });
+      // 3) 빙글빙글 감으면서 테이프가 다시 들어감
+      appEl.classList.add('cranking');
+      await Promise.all([
+        run(pencil, [{ transform: 'rotate(0deg)' }, { transform: 'rotate(1080deg)' }], { duration: 1800, easing: 'ease-in-out' }),
+        run(tangle, [{ strokeDashoffset: 0 }, { strokeDashoffset: 100 }], { duration: 1800, easing: 'ease-in' }),
+      ]);
+      appEl.classList.remove('cranking');
+      // 4) 연필 퇴장
+      await run(pencil, [{ transform: 'translate(0px, 0px)' }, { transform: 'translate(-70px, -110px)' }], { duration: 350, easing: 'ease-in' });
+      say('연필로 테이프를 다시 감았어요 ✏️');
+    } finally {
+      [tangle, pencil].forEach((el) => el.getAnimations().forEach((a) => a.cancel()));
+      appEl.classList.remove('rewinding', 'cranking');
+      rewinding = false;
+      api?.repaint?.();
+    }
+  }
+
+  // ---------------- 잠자기 타이머: 소리를 서서히 줄이다가 멈춤 ----------------
+  let sleeping = false;
+  async function sleepFade() {
+    if (!playerReady || !isPlaying || sleeping) return;
+    sleeping = true;
+    const steps = 32;
+    for (let i = 1; i <= steps; i++) {
+      try { player.setVolume(Math.round(state.volume * (1 - i / steps))); } catch {}
+      await new Promise((r) => setTimeout(r, 250)); // 약 8초
+    }
+    try { player.pauseVideo(); player.setVolume(state.volume); } catch {}
+    sleeping = false;
+    say('잘 자요 🌙 잠자기 타이머로 음악을 멈췄어요.');
+  }
+  api?.onSleep?.(sleepFade);
+
   // 끌어서 옮기기: 접힌 카세트는 어디든, 펼친 상태에선 위쪽 빈 곳이나 카세트를 잡고
   let press = null;
   function startPress(e, el, clickAction) {
     if (e.button !== 0 || busy) return;
-    press = { x: e.screenX, y: e.screenY, dragging: false, clickAction };
+    press = { x: e.screenX, y: e.screenY, dragging: false, clickAction, lastX: e.screenX, dir: 0, flips: [] };
     el.setPointerCapture(e.pointerId);
   }
   function movePress(e) {
@@ -1136,7 +1179,10 @@
       document.body.style.cursor = 'grabbing';
       api?.dragStart(press.x, press.y);
     }
-    if (press.dragging) api?.dragMove(e.screenX, e.screenY);
+    if (press.dragging) {
+      api?.dragMove(e.screenX, e.screenY);
+      detectShake(e.screenX);
+    }
   }
   function endPress() {
     if (!press) return;
@@ -1200,11 +1246,9 @@
       state.volume = Number.isFinite(saved.volume) ? saved.volume : 80;
       state.opacity = Number.isFinite(saved.opacity) ? Math.max(30, Math.min(100, saved.opacity)) : 100;
       state.secrets = !!saved.secrets;
-      state.rate = [0.5, 0.75, 1, 1.25, 1.5, 1.75, 2].includes(saved.rate) ? saved.rate : 1;
     }
     if (SECRET.includes(skin)) state.secrets = true; // 숨은 테마를 쓰고 있으면 메뉴에도 보이게
     applySecrets();
-    applyRate(false);
     els.volume.value = state.volume;
     paintRange(els.volume);
     applyOpacity();
@@ -1220,6 +1264,6 @@
   // 미리보기/테스트용
   window.__tunedeck = {
     state, expand, collapse, renderNow, renderQueue, setPlaying, parseLink, playAt, setSpools,
-    setResults: (r) => { results = r; renderResults(); }, showTab, levels, applySkin, unlock: () => { state.secrets = true; applySecrets(); },
+    setResults: (r) => { results = r; renderResults(); }, showTab, levels, applySkin, rewindEgg, unlock: () => { state.secrets = true; applySecrets(); },
   };
 })();

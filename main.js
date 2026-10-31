@@ -442,6 +442,32 @@ ipcMain.handle('yt:search', async (_e, q) => {
 // ---------- 트레이 ----------
 const sendMedia = (action) => win?.webContents.send('media', action);
 
+// ---------- 잠자기 타이머: 정한 시간이 되면 소리를 서서히 줄이고 멈춤 ----------
+let sleepTimer = null;
+let sleepAt = 0;
+let sleepMin = 0;
+function setSleep(min) {
+  clearTimeout(sleepTimer);
+  sleepTimer = null;
+  sleepAt = 0;
+  sleepMin = min;
+  if (min > 0) {
+    sleepAt = Date.now() + min * 60000;
+    sleepTimer = setTimeout(() => {
+      sleepTimer = null;
+      sleepAt = 0;
+      sleepMin = 0;
+      win?.webContents.send('sleep');
+    }, min * 60000);
+  }
+  tray?.setContextMenu(buildTrayMenu());
+}
+function sleepLabel() {
+  if (!sleepAt) return '잠자기 타이머';
+  const left = Math.max(1, Math.ceil((sleepAt - Date.now()) / 60000));
+  return `잠자기 타이머 (${left}분 남음)`;
+}
+
 function buildTrayMenu() {
   const s = settings();
   return Menu.buildFromTemplate([
@@ -450,6 +476,16 @@ function buildTrayMenu() {
     { label: '재생 / 일시정지', click: () => sendMedia('playPause') },
     { label: '다음 곡', click: () => sendMedia('next') },
     { label: '이전 곡', click: () => sendMedia('prev') },
+    {
+      label: sleepLabel(),
+      submenu: [
+        { label: '끄기', type: 'radio', checked: !sleepAt, click: () => setSleep(0) },
+        { label: '15분 뒤 멈추기', type: 'radio', checked: !!sleepAt && sleepMin === 15, click: () => setSleep(15) },
+        { label: '30분 뒤 멈추기', type: 'radio', checked: !!sleepAt && sleepMin === 30, click: () => setSleep(30) },
+        { label: '1시간 뒤 멈추기', type: 'radio', checked: !!sleepAt && sleepMin === 60, click: () => setSleep(60) },
+        { label: '2시간 뒤 멈추기', type: 'radio', checked: !!sleepAt && sleepMin === 120, click: () => setSleep(120) },
+      ],
+    },
     { type: 'separator' },
     {
       label: '항상 위에 표시',

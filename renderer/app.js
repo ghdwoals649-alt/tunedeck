@@ -29,10 +29,15 @@
     repeat: 'all',  // all | one | off
     volume: 80,
     opacity: 100,
+    secrets: false, // 숨은 테마를 찾았는지
   };
-  // 지금 모양(카세트/LP/CD)의 본체 요소 — 교체 애니메이션은 이 요소에 적용
+  // 지금 테마의 본체 요소 — 교체 애니메이션은 이 요소에 적용
   let skin = 'cassette';
-  const BODY = { cassette: '.tape-body', lp: '.lp-body', cd: '.cd-body' };
+  const BODY = {
+    cassette: '.tape-body', lp: '.lp-body', cd: '.cd-body',
+    washer: '.washer-body', tire: '.tire-body', magic: '.magic-body', // 숨은 테마
+  };
+  const SECRET = ['washer', 'tire', 'magic'];
   const activeBody = () => document.querySelector(BODY[skin] || '.tape-body');
   let player = null;
   let playerReady = false;
@@ -64,7 +69,7 @@
     saveTimer = setTimeout(() => {
       api?.saveState({
         items: state.items, index: state.index,
-        shuffle: state.shuffle, repeat: state.repeat, volume: state.volume, opacity: state.opacity,
+        shuffle: state.shuffle, repeat: state.repeat, volume: state.volume, opacity: state.opacity, secrets: state.secrets,
       });
     }, 250);
   }
@@ -978,13 +983,13 @@
   }
   requestAnimationFrame(drawViz);
 
-  // ---------------- 모양 선택 ----------------
+  // ---------------- 테마 선택 ----------------
   const skinBtn = $('skinBtn');
   const skinMenu = $('skinMenu');
   function applySkin(name) {
     if (!BODY[name]) name = 'cassette';
     skin = name;
-    appEl.classList.remove('skin-cassette', 'skin-lp', 'skin-cd');
+    Object.keys(BODY).forEach((k) => appEl.classList.remove('skin-' + k));
     appEl.classList.add('skin-' + name);
     skinMenu.querySelectorAll('.skin-opt').forEach((b) => b.setAttribute('aria-checked', String(b.dataset.skin === name)));
     resetTape();
@@ -994,12 +999,30 @@
     skinBtn.setAttribute('aria-expanded', String(show));
   }
   skinBtn.addEventListener('click', (e) => { e.stopPropagation(); toggleSkinMenu(skinMenu.hidden); });
+
+  // 이스터에그: "테마" 글자를 5번 연속(2.5초 안에) 누르면 숨은 테마 3개가 나타남
+  function applySecrets() { skinMenu.classList.toggle('secrets-on', state.secrets); }
+  let titleClicks = [];
+  $('skinTitle').addEventListener('click', (e) => {
+    e.stopPropagation();
+    if (state.secrets) return;
+    const now = Date.now();
+    titleClicks = titleClicks.filter((t) => now - t < 2500);
+    titleClicks.push(now);
+    if (titleClicks.length >= 5) {
+      titleClicks = [];
+      state.secrets = true;
+      applySecrets();
+      save();
+      say('숨겨진 테마 3개를 찾았어요! 세탁기 · 타이어 · 마법진');
+    }
+  });
   skinMenu.addEventListener('click', async (e) => {
     const opt = e.target.closest('.skin-opt');
     if (!opt || opt.dataset.skin === skin || swapping || busy) return;
     e.stopPropagation();
     const name = opt.dataset.skin;
-    // 접혀 있을 때 창 크기가 바뀌므로, 먼저 메인에 알리고 모양을 바꿈
+    // 접혀 있을 때 창 크기가 바뀌므로, 먼저 메인에 알리고 테마를 바꿈
     if (api?.setSkin) await api.setSkin(name);
     appEl.classList.add('no-anim');
     applySkin(name);
@@ -1149,7 +1172,10 @@
       state.repeat = ['all', 'one', 'off'].includes(saved.repeat) ? saved.repeat : 'all';
       state.volume = Number.isFinite(saved.volume) ? saved.volume : 80;
       state.opacity = Number.isFinite(saved.opacity) ? Math.max(30, Math.min(100, saved.opacity)) : 100;
+      state.secrets = !!saved.secrets;
     }
+    if (SECRET.includes(skin)) state.secrets = true; // 숨은 테마를 쓰고 있으면 메뉴에도 보이게
+    applySecrets();
     els.volume.value = state.volume;
     paintRange(els.volume);
     applyOpacity();
@@ -1165,6 +1191,6 @@
   // 미리보기/테스트용
   window.__tunedeck = {
     state, expand, collapse, renderNow, renderQueue, setPlaying, parseLink, playAt, setSpools,
-    setResults: (r) => { results = r; renderResults(); }, showTab, levels, applySkin,
+    setResults: (r) => { results = r; renderResults(); }, showTab, levels, applySkin, unlock: () => { state.secrets = true; applySecrets(); },
   };
 })();

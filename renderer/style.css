@@ -838,6 +838,174 @@ input[type='range']:focus-visible::-webkit-slider-thumb { transform: scale(1); }
 .tonearm .arm { fill: none; stroke: #c9c3b8; stroke-width: 4; stroke-linecap: round; }
 .tonearm .head { fill: #c9c3b8; }
 
+/* ---------------- 숨은 테마 (테마 제목 5번 클릭) ---------------- */
+.skin-opt.secret { display: none; }
+.secrets-on .skin-opt.secret { display: grid; animation: secret-in 0.45s var(--ease) both; }
+.secrets-on .skin-opt.secret:nth-of-type(5) { animation-delay: 0.08s; }
+.secrets-on .skin-opt.secret:nth-of-type(6) { animation-delay: 0.16s; }
+@keyframes secret-in { from { transform: translateY(6px) scale(0.9); } to { transform: none; } }
+.skin-options { flex-wrap: wrap; width: 204px; }
+.skin-title { cursor: default; }
+
+.skin-washer .tape-body, .skin-tire .tape-body, .skin-magic .tape-body { display: none; }
+.skin-washer .washer-body, .skin-tire .tire-body, .skin-magic .magic-body { display: block; }
+#app.skin-washer .cassette, #app.skin-tire .cassette, #app.skin-magic .cassette { aspect-ratio: 1; }
+#app.skin-washer .cassette, #app.skin-tire .cassette { --w: 112px; }
+#app.skin-magic .cassette { --w: 116px; }
+#app.skin-washer.expanded .cassette, #app.skin-tire.expanded .cassette { --w: 156px; left: 62px; top: 46px; }
+#app.skin-magic.expanded .cassette { --w: 160px; left: 60px; top: 44px; }
+/* 숨은 테마는 데크 없이 떠 있음 */
+.skin-washer .deck, .skin-tire .deck, .skin-magic .deck { display: none; }
+
+/* 세탁기 */
+.washer-body {
+  border-radius: 13%;
+  background: linear-gradient(160deg, #fbfbfc 0%, #e4e6ea 60%, #cfd3d9 100%);
+  box-shadow: 0 5px 12px rgba(0, 0, 0, 0.45), inset 0 -2px 0 rgba(0, 0, 0, 0.08);
+}
+.w-panel {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  height: 19%;
+  display: flex;
+  align-items: center;
+  gap: 5%;
+  padding: 0 9%;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.12);
+}
+.w-btn { width: 9%; height: 26%; border-radius: 2px; background: #c3c7ce; }
+.w-led { width: 5%; aspect-ratio: 1; border-radius: 50%; background: #7a8088; margin-left: auto; }
+.playing .w-led { background: #4ce07a; box-shadow: 0 0 6px #4ce07a; }
+.w-dial {
+  width: 12%;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: radial-gradient(circle at 40% 35%, #ffffff, #b9bec6);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+}
+.w-door {
+  position: absolute;
+  left: 15%;
+  top: 25%;
+  width: 70%;
+  height: 70%;
+  border-radius: 50%;
+  background: radial-gradient(circle, #8e949d 0 60%, #eef0f3 61% 72%, #a7adb6 73% 100%);
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.35), inset 0 0 0 1px rgba(255, 255, 255, 0.7);
+}
+.washer-body .w-drum {
+  inset: 13%;
+  background: #2b3038;
+  animation-duration: 2.4s;
+}
+.w-drum img { width: 100%; height: 100%; object-fit: cover; opacity: 0; transition: opacity 0.4s; }
+.w-drum img.show { opacity: 0.85; }
+.w-holes {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(0, 0, 0, 0.35) 0 1.4px, transparent 1.6px) 0 0 / 9% 9%;
+}
+.w-glass {
+  position: absolute;
+  inset: 13%;
+  border-radius: 50%;
+  pointer-events: none;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.55) 0%, rgba(255, 255, 255, 0.08) 38%, transparent 55%, rgba(120, 180, 255, 0.12) 100%);
+  box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.35), inset 0 0 12px rgba(0, 0, 0, 0.35);
+}
+
+/* 타이어 */
+.tire-body { box-shadow: 0 5px 12px rgba(0, 0, 0, 0.5); }
+.tire-body .platter { background: #161618; animation-duration: 2.8s; }
+.t-tread {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: repeating-conic-gradient(#0e0e10 0deg 5deg, #2c2c30 5deg 10deg);
+  -webkit-mask: radial-gradient(circle, transparent 0 85%, #000 85.5%);
+  mask: radial-gradient(circle, transparent 0 85%, #000 85.5%);
+}
+.t-wall {
+  position: absolute;
+  inset: 7.5%;
+  border-radius: 50%;
+  background: radial-gradient(circle, #232327 0 70%, #1a1a1d 71% 100%);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.06);
+}
+.t-rim {
+  position: absolute;
+  inset: 21%;
+  border-radius: 50%;
+  background: repeating-conic-gradient(from -9deg, #dfe2e6 0deg 18deg, #3a3d44 18deg 72deg);
+  box-shadow: inset 0 0 0 3px #e7e9ec, inset 0 0 0 5px #8d929a, 0 0 0 2px #0c0c0e;
+}
+.t-cap {
+  position: absolute;
+  inset: 37%;
+  border-radius: 50%;
+  overflow: hidden;
+  background: #9aa0a8;
+  box-shadow: 0 0 0 2px #e7e9ec, 0 0 0 3.5px #5b6068;
+}
+.t-cap img { width: 100%; height: 100%; object-fit: cover; opacity: 0; transition: opacity 0.4s; }
+.t-cap img.show { opacity: 1; }
+.t-nuts {
+  position: absolute;
+  inset: 31%;
+  border-radius: 50%;
+  background: radial-gradient(circle, #c9ccd1 0 1.6px, transparent 1.8px) 50% 0 / 6px 6px no-repeat,
+              radial-gradient(circle, #c9ccd1 0 1.6px, transparent 1.8px) 50% 100% / 6px 6px no-repeat,
+              radial-gradient(circle, #c9ccd1 0 1.6px, transparent 1.8px) 0 50% / 6px 6px no-repeat,
+              radial-gradient(circle, #c9ccd1 0 1.6px, transparent 1.8px) 100% 50% / 6px 6px no-repeat;
+  pointer-events: none;
+}
+.t-sheen {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  pointer-events: none;
+  background: linear-gradient(140deg, rgba(255, 255, 255, 0.12), transparent 40%);
+}
+
+/* 마법진 */
+.magic-body {
+  background: radial-gradient(circle, rgba(52, 22, 92, 0.92) 0 55%, rgba(14, 8, 34, 0.94) 100%);
+  box-shadow: 0 0 16px rgba(150, 120, 255, 0.55), 0 0 4px rgba(140, 230, 255, 0.8), inset 0 0 18px rgba(140, 220, 255, 0.35);
+}
+.magic-body .platter { animation-duration: 24s; overflow: visible; }
+.magic-body svg { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
+.m-line { fill: none; stroke: #a8ecff; stroke-width: 1.1; }
+.m-thin { fill: none; stroke: rgba(168, 236, 255, 0.55); stroke-width: 0.6; }
+.m-dash { fill: none; stroke: #e0b8ff; stroke-width: 1.2; stroke-dasharray: 3 2.2; }
+.m-runes { fill: #c9f3ff; font: 7px 'Segoe UI Historic', 'Segoe UI Symbol', serif; letter-spacing: 1.2px; }
+.m-dots circle { fill: #e0b8ff; }
+.m-inner {
+  position: absolute;
+  inset: 0;
+  animation: reel-rev 14s linear infinite paused;
+}
+.playing .m-inner { animation-play-state: running; }
+.swapping .m-inner { animation-play-state: paused; }
+@keyframes reel-rev { to { transform: rotate(-360deg); } }
+.m-core {
+  position: absolute;
+  inset: 36%;
+  border-radius: 50%;
+  overflow: hidden;
+  background: #2a1450;
+  box-shadow: 0 0 0 1.5px #a8ecff, 0 0 10px rgba(168, 236, 255, 0.9);
+}
+.m-core img { width: 100%; height: 100%; object-fit: cover; opacity: 0; transition: opacity 0.4s; }
+.m-core img.show { opacity: 1; }
+
+/* 숨은 테마의 음량 막대 위치 */
+.skin-washer .viz { left: 26%; right: 26%; bottom: 12%; height: 22%; }
+.skin-tire .viz { left: 24%; right: 24%; bottom: 22%; height: 18%; }
+.skin-magic .viz { left: 24%; right: 24%; bottom: 14%; height: 22%; }
+
 #resolver {
   position: fixed;
   left: -9999px;
@@ -851,6 +1019,6 @@ input[type='range']:focus-visible::-webkit-slider-thumb { transform: scale(1); }
 
 @media (prefers-reduced-motion: reduce) {
   .front .hub { animation-duration: 8s; }
-  .disc-body .platter { animation-duration: 16s; }
+  .disc-body .platter, .m-inner { animation-duration: 16s; }
   .cassette, .panel { transition-duration: 0.01s !important; }
 }

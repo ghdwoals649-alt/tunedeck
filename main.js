@@ -32,6 +32,10 @@ const SKINS = {
   cassette: { tape: { w: 154, h: 98 }, slot: { x: 35, y: 55, w: 210, h: 134 } },
   lp: { tape: { w: 112, h: 112 }, slot: { x: 62, y: 46, w: 156, h: 156 } },
   cd: { tape: { w: 108, h: 108 }, slot: { x: 66, y: 50, w: 148, h: 148 } },
+  // 숨은 테마 (테마 제목 5번 클릭)
+  washer: { tape: { w: 112, h: 112 }, slot: { x: 62, y: 46, w: 156, h: 156 } },
+  tire: { tape: { w: 112, h: 112 }, slot: { x: 62, y: 46, w: 156, h: 156 } },
+  magic: { tape: { w: 116, h: 116 }, slot: { x: 60, y: 44, w: 160, h: 160 } },
 };
 let skinName = 'cassette';
 const TAPE = {

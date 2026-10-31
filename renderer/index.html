@@ -30,7 +30,7 @@
           <input id="opacity" type="range" min="30" max="100" value="100" aria-label="투명도">
         </label>
         <span class="spacer"></span>
-        <button id="skinBtn" class="icon-btn small" title="모양 바꾸기" aria-label="모양 바꾸기" aria-haspopup="true" aria-expanded="false">
+        <button id="skinBtn" class="icon-btn small" title="테마 바꾸기" aria-label="테마 바꾸기" aria-haspopup="true" aria-expanded="false">
           <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M12 2.8v2.4M12 18.8v2.4M2.8 12h2.4M18.8 12h2.4M5.5 5.5l1.7 1.7M16.8 16.8l1.7 1.7M5.5 18.5l1.7-1.7M16.8 7.2l1.7-1.7"/></svg>
         </button>
         <button id="collapseBtn" class="icon-btn small" title="접기 (Esc)" aria-label="접기">
@@ -41,8 +41,8 @@
         </button>
       </div>
 
-      <div id="skinMenu" class="skin-menu" role="radiogroup" aria-label="모양" hidden>
-        <p class="skin-title">모양</p>
+      <div id="skinMenu" class="skin-menu" role="radiogroup" aria-label="테마" hidden>
+        <p class="skin-title" id="skinTitle">테마</p>
         <div class="skin-options">
           <button type="button" class="skin-opt" role="radio" data-skin="cassette" aria-checked="true">
             <svg viewBox="0 0 40 26" aria-hidden="true"><rect x="1" y="1" width="38" height="24" rx="3"/><rect x="11" y="8" width="18" height="7" rx="2"/><circle cx="15" cy="11.5" r="1.8"/><circle cx="25" cy="11.5" r="1.8"/></svg>
@@ -55,6 +55,18 @@
           <button type="button" class="skin-opt" role="radio" data-skin="cd" aria-checked="false">
             <svg viewBox="0 0 40 26" aria-hidden="true"><circle cx="20" cy="13" r="12"/><circle cx="20" cy="13" r="4.5"/><circle cx="20" cy="13" r="1.5"/><path class="thin" d="M12 6.5a10 10 0 0 1 6-2.2"/></svg>
             <span>CD</span>
+          </button>
+          <button type="button" class="skin-opt secret" role="radio" data-skin="washer" aria-checked="false">
+            <svg viewBox="0 0 40 26" aria-hidden="true"><rect x="9" y="1" width="22" height="24" rx="3"/><path class="thin" d="M9 6.5h22"/><circle cx="20" cy="15.5" r="6.5"/><circle cx="20" cy="15.5" r="3.5" class="thin"/></svg>
+            <span>세탁기</span>
+          </button>
+          <button type="button" class="skin-opt secret" role="radio" data-skin="tire" aria-checked="false">
+            <svg viewBox="0 0 40 26" aria-hidden="true"><circle cx="20" cy="13" r="12"/><circle cx="20" cy="13" r="7"/><circle cx="20" cy="13" r="2"/><path class="thin" d="M20 1v3M20 22v3M8 13h3M29 13h3M11.5 4.5l2 2M26.5 19.5l2 2M11.5 21.5l2-2M26.5 6.5l2-2"/></svg>
+            <span>타이어</span>
+          </button>
+          <button type="button" class="skin-opt secret" role="radio" data-skin="magic" aria-checked="false">
+            <svg viewBox="0 0 40 26" aria-hidden="true"><circle cx="20" cy="13" r="12"/><circle cx="20" cy="13" r="9.5" class="thin"/><path class="thin" d="M20 3.5l8.2 14.2H11.8zM20 22.5l-8.2-14.2h16.4z"/></svg>
+            <span>마법진</span>
           </button>
         </div>
       </div>
@@ -202,6 +214,46 @@
           <span class="cd-hole"></span>
         </span>
         <span class="cd-sheen"></span>
+      </span>
+
+      <!-- 숨은 테마: 세탁기 -->
+      <span class="disc-body washer-body">
+        <span class="w-panel"><span class="w-btn"></span><span class="w-btn"></span><span class="w-led"></span><span class="w-dial"></span></span>
+        <span class="w-door">
+          <span class="platter w-drum"><img class="cover-img" alt=""><span class="w-holes"></span></span>
+          <span class="w-glass"></span>
+        </span>
+      </span>
+
+      <!-- 숨은 테마: 타이어 -->
+      <span class="disc-body tire-body">
+        <span class="platter">
+          <span class="t-tread"></span>
+          <span class="t-wall"></span>
+          <span class="t-rim"></span>
+          <span class="t-cap"><img class="cover-img" alt=""></span>
+          <span class="t-nuts"></span>
+        </span>
+        <span class="t-sheen"></span>
+      </span>
+
+      <!-- 숨은 테마: 마법진 -->
+      <span class="disc-body magic-body">
+        <span class="platter m-outer">
+          <svg viewBox="0 0 100 100" aria-hidden="true">
+            <defs><path id="runePath" d="M50 50 m-40 0 a40 40 0 1 1 80 0 a40 40 0 1 1 -80 0"/></defs>
+            <circle cx="50" cy="50" r="48" class="m-line"/>
+            <circle cx="50" cy="50" r="45.5" class="m-thin"/>
+            <circle cx="50" cy="50" r="35" class="m-line"/>
+            <text class="m-runes"><textPath href="#runePath">ᚠᚢᚦᚨᚱᚲᚷᚹ·ᚺᚾᛁᛃᛇᛈᛉᛊ·ᛏᛒᛖᛗᛚᛜᛞᛟ·ᚠᚢᚦᚨᚱᚲᚷᚹ·</textPath></text>
+            <path class="m-line" d="M50 15 L80.3 67.5 L19.7 67.5 Z M50 85 L19.7 32.5 L80.3 32.5 Z"/>
+            <g class="m-dots"><circle cx="50" cy="2" r="1.6"/><circle cx="98" cy="50" r="1.6"/><circle cx="50" cy="98" r="1.6"/><circle cx="2" cy="50" r="1.6"/></g>
+          </svg>
+        </span>
+        <span class="m-inner">
+          <svg viewBox="0 0 100 100" aria-hidden="true"><circle cx="50" cy="50" r="30" class="m-dash"/><circle cx="50" cy="50" r="26" class="m-thin"/></svg>
+        </span>
+        <span class="m-core"><img class="cover-img" alt=""></span>
       </span>
 
       <span id="viz" class="viz" aria-hidden="true"></span>

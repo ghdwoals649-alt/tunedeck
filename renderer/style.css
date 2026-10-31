@@ -424,6 +424,7 @@ input[type='range']:focus-visible::-webkit-slider-thumb { transform: scale(1); }
   font-size: 9.5px;
   line-height: 13px;
   font-variant-numeric: tabular-nums;
+  color: #ffffff;
 }
 .item .text { min-width: 0; }
 .item .t, .item .a { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -917,57 +918,38 @@ input[type='range']:focus-visible::-webkit-slider-thumb { transform: scale(1); }
   box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.35), inset 0 0 12px rgba(0, 0, 0, 0.35);
 }
 
-/* 타이어 */
+/* 자동차 바퀴 */
 .tire-body { box-shadow: 0 5px 12px rgba(0, 0, 0, 0.5); }
-.tire-body .platter { background: #161618; animation-duration: 2.8s; }
-.t-tread {
-  position: absolute;
-  inset: 0;
-  border-radius: 50%;
-  background: repeating-conic-gradient(#0e0e10 0deg 5deg, #2c2c30 5deg 10deg);
-  -webkit-mask: radial-gradient(circle, transparent 0 85%, #000 85.5%);
-  mask: radial-gradient(circle, transparent 0 85%, #000 85.5%);
-}
-.t-wall {
-  position: absolute;
-  inset: 7.5%;
-  border-radius: 50%;
-  background: radial-gradient(circle, #232327 0 70%, #1a1a1d 71% 100%);
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.06);
-}
-.t-rim {
-  position: absolute;
-  inset: 21%;
-  border-radius: 50%;
-  background: repeating-conic-gradient(from -9deg, #dfe2e6 0deg 18deg, #3a3d44 18deg 72deg);
-  box-shadow: inset 0 0 0 3px #e7e9ec, inset 0 0 0 5px #8d929a, 0 0 0 2px #0c0c0e;
-}
+.tire-body .platter { animation-duration: 2.6s; background: transparent; }
+.tire-body svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+.w-tread { fill: none; stroke: #0a0a0b; stroke-width: 2.6; stroke-dasharray: 1.6 1.2; }
+.w-wallline { fill: none; stroke: rgba(255, 255, 255, 0.07); stroke-width: 0.6; }
+.w-barrel { fill: #2a2c31; stroke: #111214; stroke-width: 0.8; }
+.w-disc { fill: #6a6e75; stroke: #44474d; stroke-width: 1; }
+.w-disc-hat { fill: #4b4e54; }
+.w-disc-holes circle { fill: #2c2e33; }
+.w-caliper { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+.w-caliper path { fill: #d7262e; stroke: #8f141a; stroke-width: 0.6; }
+.w-lip { fill: none; stroke: url(#alloy); stroke-width: 3.2; }
+.w-spokes path { fill: url(#alloy); stroke: #7a8088; stroke-width: 0.35; }
+.w-hub { fill: url(#alloy); stroke: #7a8088; stroke-width: 0.4; }
+.w-nuts circle { fill: #e9ebee; stroke: #6d737b; stroke-width: 0.35; }
 .t-cap {
   position: absolute;
-  inset: 37%;
+  inset: 44%;
   border-radius: 50%;
   overflow: hidden;
-  background: #9aa0a8;
-  box-shadow: 0 0 0 2px #e7e9ec, 0 0 0 3.5px #5b6068;
+  background: #30333a;
+  box-shadow: 0 0 0 1.2px #e6e8eb, 0 0 0 2px #5b6068;
 }
 .t-cap img { width: 100%; height: 100%; object-fit: cover; opacity: 0; transition: opacity 0.4s; }
 .t-cap img.show { opacity: 1; }
-.t-nuts {
-  position: absolute;
-  inset: 31%;
-  border-radius: 50%;
-  background: radial-gradient(circle, #c9ccd1 0 1.6px, transparent 1.8px) 50% 0 / 6px 6px no-repeat,
-              radial-gradient(circle, #c9ccd1 0 1.6px, transparent 1.8px) 50% 100% / 6px 6px no-repeat,
-              radial-gradient(circle, #c9ccd1 0 1.6px, transparent 1.8px) 0 50% / 6px 6px no-repeat,
-              radial-gradient(circle, #c9ccd1 0 1.6px, transparent 1.8px) 100% 50% / 6px 6px no-repeat;
-  pointer-events: none;
-}
 .t-sheen {
   position: absolute;
   inset: 0;
   border-radius: 50%;
   pointer-events: none;
-  background: linear-gradient(140deg, rgba(255, 255, 255, 0.12), transparent 40%);
+  background: linear-gradient(140deg, rgba(255, 255, 255, 0.12), transparent 42%);
 }
 
 /* 마법진 */
@@ -1001,9 +983,127 @@ input[type='range']:focus-visible::-webkit-slider-thumb { transform: scale(1); }
 .m-core img { width: 100%; height: 100%; object-fit: cover; opacity: 0; transition: opacity 0.4s; }
 .m-core img.show { opacity: 1; }
 
+/* ---------------- 숨은 테마별 앱 배경 ---------------- */
+.skin-washer .backdrop img, .skin-tire .backdrop img, .skin-magic .backdrop img { display: none; }
+
+/* 세탁기: 하얀 세탁실 + 비눗방울, 글자는 어둡게 */
+.skin-washer .panel {
+  --paper: #1f2630;
+  --paper-dim: rgba(31, 38, 48, 0.6);
+  --paper-faint: rgba(31, 38, 48, 0.16);
+  --brass: #3b82c4;
+  color: var(--paper);
+  background: #f4f7fb;
+  box-shadow: inset 0 0 0 1px rgba(31, 38, 48, 0.08);
+}
+.skin-washer .backdrop {
+  background:
+    radial-gradient(circle at 14% 22%, rgba(255, 255, 255, 0.95) 0 9px, rgba(150, 196, 240, 0.55) 10px, transparent 11.5px),
+    radial-gradient(circle at 82% 14%, rgba(255, 255, 255, 0.95) 0 5px, rgba(150, 196, 240, 0.55) 6px, transparent 7.5px),
+    radial-gradient(circle at 74% 42%, rgba(255, 255, 255, 0.95) 0 14px, rgba(150, 196, 240, 0.45) 15px, transparent 17px),
+    radial-gradient(circle at 20% 58%, rgba(255, 255, 255, 0.95) 0 6px, rgba(150, 196, 240, 0.55) 7px, transparent 8.5px),
+    radial-gradient(circle at 88% 70%, rgba(255, 255, 255, 0.95) 0 8px, rgba(150, 196, 240, 0.5) 9px, transparent 10.5px),
+    radial-gradient(circle at 34% 86%, rgba(255, 255, 255, 0.95) 0 11px, rgba(150, 196, 240, 0.45) 12px, transparent 13.5px),
+    radial-gradient(circle at 62% 94%, rgba(255, 255, 255, 0.95) 0 4px, rgba(150, 196, 240, 0.55) 5px, transparent 6.5px),
+    linear-gradient(to bottom, #fbfcfe 0%, #eef3f9 55%, #dde8f4 100%);
+}
+.skin-washer .scrim { display: none; }
+.skin-washer .play-btn { background: #1f2630; color: #ffffff; }
+.skin-washer .icon-btn:hover, .skin-washer .item:hover, .skin-washer .item:focus-visible { background: rgba(31, 38, 48, 0.07); }
+.skin-washer .search { background: rgba(255, 255, 255, 0.9); box-shadow: inset 0 0 0 1px rgba(31, 38, 48, 0.14); }
+.skin-washer .search button, .skin-washer .key-form button { background: #3b82c4; color: #ffffff; }
+.skin-washer .tab[aria-selected='true'] { background: rgba(31, 38, 48, 0.08); }
+.skin-washer .item.current { background: rgba(59, 130, 196, 0.12); }
+.skin-washer .msg.error { color: #c0392b; }
+.skin-washer .skin-menu, .skin-washer .update-bar { background: rgba(255, 255, 255, 0.98); box-shadow: 0 10px 24px rgba(31, 38, 48, 0.2), inset 0 0 0 1px rgba(31, 38, 48, 0.1); }
+.skin-washer .skin-opt { background: rgba(31, 38, 48, 0.05); }
+.skin-washer .skin-opt[aria-checked='true'] { background: rgba(59, 130, 196, 0.12); }
+.skin-washer .key-card { background: rgba(31, 38, 48, 0.05); }
+.skin-washer .key-form { background: rgba(255, 255, 255, 0.9); }
+.skin-washer .viz i { background: linear-gradient(to top, rgba(59, 130, 196, 0.6), rgba(150, 196, 240, 0.6)); }
+
+/* 타이어: 아스팔트 위 타이어 자국 */
+.skin-tire .panel { --brass: #f2c94c; }
+.skin-tire .backdrop {
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 30% 20%, rgba(255, 255, 255, 0.05) 0 1px, transparent 1.5px) 0 0 / 7px 7px,
+    radial-gradient(circle at 70% 60%, rgba(0, 0, 0, 0.25) 0 1px, transparent 1.5px) 0 0 / 5px 5px,
+    linear-gradient(to bottom, #3a3b3f, #2a2b2e 60%, #222326);
+}
+.skin-tire .backdrop::before, .skin-tire .backdrop::after {
+  content: '';
+  position: absolute;
+  top: -25%;
+  width: 62px;
+  height: 150%;
+  transform: rotate(-14deg);
+  /* 트레드 블록 두 줄 + 가운데 홈 */
+  background:
+    repeating-linear-gradient(to bottom, rgba(8, 8, 10, 0.62) 0 8px, transparent 8px 14px) 0 0 / 46% 100% no-repeat,
+    repeating-linear-gradient(to bottom, transparent 0 7px, rgba(8, 8, 10, 0.62) 7px 15px, transparent 15px 21px) 100% 0 / 46% 100% no-repeat,
+    linear-gradient(to right, rgba(0, 0, 0, 0.18), rgba(0, 0, 0, 0.28) 50%, rgba(0, 0, 0, 0.18));
+  border-radius: 6px;
+}
+.skin-tire .backdrop::before { left: 8%; }
+.skin-tire .backdrop::after { left: 60%; opacity: 0.85; }
+.skin-tire .scrim {
+  background: linear-gradient(to bottom, rgba(18, 18, 20, 0.05) 0%, rgba(18, 18, 20, 0.35) 45%, rgba(18, 18, 20, 0.8) 75%, rgba(18, 18, 20, 0.92) 100%);
+}
+.skin-tire .viz i { background: linear-gradient(to top, rgba(242, 201, 76, 0.6), rgba(255, 238, 180, 0.6)); }
+
+/* 마법진: 별이 뜬 밤하늘 + 거대한 마법진 문양 */
+.skin-magic .panel { --brass: #a8ecff; }
+.skin-magic .backdrop {
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 12% 18%, #ffffff 0 1px, transparent 1.6px),
+    radial-gradient(circle at 78% 9%, #e6dcff 0 1.2px, transparent 2px),
+    radial-gradient(circle at 64% 27%, #ffffff 0 0.8px, transparent 1.4px),
+    radial-gradient(circle at 30% 36%, #cdf6ff 0 1px, transparent 1.6px),
+    radial-gradient(circle at 90% 48%, #ffffff 0 0.9px, transparent 1.5px),
+    radial-gradient(circle at 8% 66%, #e6dcff 0 1.1px, transparent 1.8px),
+    radial-gradient(circle at 52% 74%, #ffffff 0 0.8px, transparent 1.4px),
+    radial-gradient(circle at 84% 88%, #cdf6ff 0 1px, transparent 1.6px),
+    radial-gradient(ellipse at 50% 22%, rgba(120, 70, 220, 0.55), transparent 60%),
+    radial-gradient(circle at 50% 100%, #2a1352 0%, #12082a 55%, #07040f 100%);
+}
+.skin-magic .backdrop::before, .skin-magic .backdrop::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  border-radius: 50%;
+  pointer-events: none;
+}
+.skin-magic .backdrop::before {
+  width: 440px;
+  height: 440px;
+  margin-left: -220px;
+  bottom: -230px;
+  border: 1.5px solid rgba(168, 236, 255, 0.35);
+  box-shadow: 0 0 24px rgba(150, 120, 255, 0.35), inset 0 0 24px rgba(150, 120, 255, 0.25),
+              inset 0 0 0 14px rgba(0, 0, 0, 0), inset 0 0 0 15px rgba(224, 184, 255, 0.25);
+}
+.skin-magic .backdrop::after {
+  width: 330px;
+  height: 330px;
+  margin-left: -165px;
+  bottom: -175px;
+  border: 1.5px dashed rgba(224, 184, 255, 0.4);
+  background: conic-gradient(from 0deg, transparent 0 30deg, rgba(168, 236, 255, 0.08) 30deg 32deg, transparent 32deg 90deg,
+    rgba(168, 236, 255, 0.08) 90deg 92deg, transparent 92deg 150deg, rgba(168, 236, 255, 0.08) 150deg 152deg,
+    transparent 152deg 210deg, rgba(168, 236, 255, 0.08) 210deg 212deg, transparent 212deg 270deg,
+    rgba(168, 236, 255, 0.08) 270deg 272deg, transparent 272deg 330deg, rgba(168, 236, 255, 0.08) 330deg 332deg, transparent 332deg);
+}
+.skin-magic .scrim {
+  background: linear-gradient(to bottom, rgba(7, 4, 15, 0) 0%, rgba(7, 4, 15, 0.25) 50%, rgba(7, 4, 15, 0.55) 100%);
+}
+.skin-magic #title { text-shadow: 0 0 10px rgba(168, 236, 255, 0.45); }
+.skin-magic .viz i { background: linear-gradient(to top, rgba(168, 236, 255, 0.6), rgba(224, 184, 255, 0.6)); }
+
 /* 숨은 테마의 음량 막대 위치 */
 .skin-washer .viz { left: 26%; right: 26%; bottom: 12%; height: 22%; }
-.skin-tire .viz { left: 24%; right: 24%; bottom: 22%; height: 18%; }
+.skin-tire .viz { left: 26%; right: 26%; bottom: 16%; height: 20%; }
 .skin-magic .viz { left: 24%; right: 24%; bottom: 14%; height: 22%; }
 
 #resolver {

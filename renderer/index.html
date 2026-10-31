@@ -225,14 +225,43 @@
         </span>
       </span>
 
-      <!-- 숨은 테마: 타이어 -->
+      <!-- 숨은 테마: 자동차 바퀴 -->
       <span class="disc-body tire-body">
+        <!-- 뒤: 타이어 + 휠 안쪽 + 브레이크 디스크 (회전) -->
         <span class="platter">
-          <span class="t-tread"></span>
-          <span class="t-wall"></span>
-          <span class="t-rim"></span>
+          <svg viewBox="0 0 100 100" aria-hidden="true">
+            <defs>
+              <radialGradient id="tireWall" cx="50%" cy="50%" r="50%">
+                <stop offset="0.68" stop-color="#26272b"/><stop offset="0.86" stop-color="#18191b"/><stop offset="1" stop-color="#0d0d0e"/>
+              </radialGradient>
+            </defs>
+            <circle cx="50" cy="50" r="50" fill="url(#tireWall)"/>
+            <circle cx="50" cy="50" r="48.6" class="w-tread"/>
+            <circle cx="50" cy="50" r="40.5" class="w-wallline"/>
+            <circle cx="50" cy="50" r="35.5" class="w-barrel"/>
+            <circle cx="50" cy="50" r="27" class="w-disc"/>
+            <circle cx="50" cy="50" r="18" class="w-disc-hat"/>
+            <g class="w-disc-holes"><circle transform="rotate(0 50 50)" cx="50" cy="28.5" r="1"/><circle transform="rotate(30 50 50)" cx="50" cy="28.5" r="1"/><circle transform="rotate(60 50 50)" cx="50" cy="28.5" r="1"/><circle transform="rotate(90 50 50)" cx="50" cy="28.5" r="1"/><circle transform="rotate(120 50 50)" cx="50" cy="28.5" r="1"/><circle transform="rotate(150 50 50)" cx="50" cy="28.5" r="1"/><circle transform="rotate(180 50 50)" cx="50" cy="28.5" r="1"/><circle transform="rotate(210 50 50)" cx="50" cy="28.5" r="1"/><circle transform="rotate(240 50 50)" cx="50" cy="28.5" r="1"/><circle transform="rotate(270 50 50)" cx="50" cy="28.5" r="1"/><circle transform="rotate(300 50 50)" cx="50" cy="28.5" r="1"/><circle transform="rotate(330 50 50)" cx="50" cy="28.5" r="1"/></g>
+          </svg>
+        </span>
+        <!-- 가운데: 브레이크 캘리퍼 (고정, 돌지 않음) -->
+        <svg class="w-caliper" viewBox="0 0 100 100" aria-hidden="true">
+          <path d="M66.5 22.5 A33 33 0 0 1 79.5 39.5 L73.5 41.5 A26.5 26.5 0 0 0 62.6 27.6 Z" />
+        </svg>
+        <!-- 앞: 휠 림 + 5스포크 + 너트 + 센터캡 (회전) -->
+        <span class="platter wheel-front">
+          <svg viewBox="0 0 100 100" aria-hidden="true">
+            <defs>
+              <linearGradient id="alloy" x1="0" y1="0" x2="1" y2="1">
+                <stop offset="0" stop-color="#f4f5f7"/><stop offset="0.5" stop-color="#c3c7cd"/><stop offset="1" stop-color="#8d939b"/>
+              </linearGradient>
+            </defs>
+            <circle cx="50" cy="50" r="35.8" class="w-lip"/>
+            <g class="w-spokes"><path transform="rotate(0 50 50)" d="M47 38.5 L44.8 16.4 Q50 14.8 55.2 16.4 L53 38.5 Z"/><path transform="rotate(72 50 50)" d="M47 38.5 L44.8 16.4 Q50 14.8 55.2 16.4 L53 38.5 Z"/><path transform="rotate(144 50 50)" d="M47 38.5 L44.8 16.4 Q50 14.8 55.2 16.4 L53 38.5 Z"/><path transform="rotate(216 50 50)" d="M47 38.5 L44.8 16.4 Q50 14.8 55.2 16.4 L53 38.5 Z"/><path transform="rotate(288 50 50)" d="M47 38.5 L44.8 16.4 Q50 14.8 55.2 16.4 L53 38.5 Z"/></g>
+            <circle cx="50" cy="50" r="13" class="w-hub"/>
+            <g class="w-nuts"><circle transform="rotate(36 50 50)" cx="50" cy="40.6" r="1.4"/><circle transform="rotate(108 50 50)" cx="50" cy="40.6" r="1.4"/><circle transform="rotate(180 50 50)" cx="50" cy="40.6" r="1.4"/><circle transform="rotate(252 50 50)" cx="50" cy="40.6" r="1.4"/><circle transform="rotate(324 50 50)" cx="50" cy="40.6" r="1.4"/></g>
+          </svg>
           <span class="t-cap"><img class="cover-img" alt=""></span>
-          <span class="t-nuts"></span>
         </span>
         <span class="t-sheen"></span>
       </span>

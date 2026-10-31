@@ -267,10 +267,27 @@
     renderResults();
   }
 
+  // 링크 전용판(친구용): 검색 없이 유튜브 링크로만 추가
+  let searchEnabled = true;
+  function applyEdition(ed) {
+    searchEnabled = !ed || ed.search !== false;
+    appEl.classList.toggle('no-search', !searchEnabled);
+    if (!searchEnabled) {
+      els.searchInput.placeholder = '유튜브 링크 붙여넣기';
+      els.searchInput.setAttribute('aria-label', '유튜브 링크');
+      els.searchForm.querySelector('button').textContent = '추가';
+      showTab('queue');
+    }
+  }
+
   els.searchForm.addEventListener('submit', async (e) => {
     e.preventDefault();
     const v = els.searchInput.value.trim();
     if (!v) { els.searchInput.focus(); return; }
+    if (!searchEnabled && !parseLink(v)) {
+      say('유튜브 링크를 붙여넣어 주세요. (youtube.com 또는 youtu.be 주소)', true);
+      return;
+    }
     if (parseLink(v)) {
       await addFromText(v);
       els.searchInput.value = '';
@@ -615,7 +632,7 @@
     if (!state.items.length) {
       const li = document.createElement('li');
       li.className = 'empty-list';
-      li.textContent = '재생목록이 비어 있어요. 위에서 곡을 검색해 추가해 보세요.';
+      li.textContent = searchEnabled ? '재생목록이 비어 있어요. 위에서 곡을 검색해 추가해 보세요.' : '재생목록이 비어 있어요. 위 칸에 유튜브 링크를 붙여넣어 보세요.';
       q.appendChild(li);
       return;
     }
@@ -1079,6 +1096,7 @@
 
   // ---------------- 시작 ----------------
   (async () => {
+    applyEdition(api?.getEdition ? await api.getEdition().catch(() => null) : null);
     const saved = api ? await api.loadState() : null;
     if (saved && Array.isArray(saved.items)) {
       state.items = saved.items.filter((it) => it && /^[\w-]{11}$/.test(it.id));

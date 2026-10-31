@@ -38,4 +38,7 @@ try {
   // 업데이트가 없거나 읽을 수 없으면 기본 버전 실행
 }
 
+// 설치 폴더 위치 (친구용 링크 전용판 표시 파일 edition.json 이 여기 있음)
+global.TUNEDECK_BUNDLED_DIR = __dirname;
+
 require(path.join(dir, 'main.js'));

@@ -358,6 +358,9 @@ input[type='range']:focus-visible::-webkit-slider-thumb { transform: scale(1); }
 }
 .msg.error { color: #f0a7a0; }
 
+/* 링크 전용판: 검색 결과 탭 숨김 */
+.no-search #tabResults, .no-search #resultsPane { display: none !important; }
+
 /* ---------------- 목록 탭 ---------------- */
 .list-head {
   display: flex;

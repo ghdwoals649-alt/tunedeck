@@ -3,6 +3,8 @@
 # 2) put the TuneDeck app files inside it
 # 3) rename electron.exe -> TuneDeck.exe and set the icon
 
+param([switch]$Lite)
+
 $ErrorActionPreference = 'Stop'
 $ProgressPreference = 'SilentlyContinue'   # makes Invoke-WebRequest much faster
 [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
@@ -29,6 +31,10 @@ function Copy-AppFiles {
   }
   Copy-Item -Recurse (Join-Path $Root 'renderer') $App
   Copy-Item -Recurse (Join-Path $Root 'assets') $App
+  # Link-only edition (no search, no API key): marker file read by the app
+  if ($Lite) {
+    Set-Content -Path (Join-Path $App 'edition.json') -Value '{"search": false}' -Encoding ASCII
+  }
 }
 
 try {

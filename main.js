@@ -15,6 +15,17 @@ app.disableHardwareAcceleration();
 const APP_VERSION = JSON.parse(fs.readFileSync(path.join(__dirname, 'package.json'), 'utf8')).version;
 let updateReady = null;
 
+// 판 구분: 설치 폴더에 edition.json {"search": false} 가 있으면 검색이 빠진 링크 전용판
+const EDITION = (() => {
+  try {
+    const base = global.TUNEDECK_BUNDLED_DIR || __dirname;
+    const e = JSON.parse(fs.readFileSync(path.join(base, 'edition.json'), 'utf8'));
+    return { search: e.search !== false };
+  } catch {
+    return { search: true };
+  }
+})();
+
 // 접힌 창: 카세트 전체(154x98) + 그림자 여백 12
 const TAPE = { w: 154, h: 98, pad: 12 };
 const COLLAPSED = { w: TAPE.w + TAPE.pad * 2, h: TAPE.h + TAPE.pad * 2 };
@@ -369,6 +380,7 @@ async function ytSearch(q, key, max = 20) {
   return { items };
 }
 
+ipcMain.handle('app:edition', () => EDITION);
 ipcMain.handle('yt:hasKey', () => !!settings().apiKey);
 ipcMain.handle('yt:setKey', async (_e, key) => {
   key = String(key || '').trim();
@@ -383,6 +395,7 @@ ipcMain.handle('yt:setKey', async (_e, key) => {
   return { ok: true };
 });
 ipcMain.handle('yt:search', async (_e, q) => {
+  if (!EDITION.search) return { error: 'disabled' };
   const key = settings().apiKey;
   if (!key) return { error: 'nokey' };
   q = String(q || '').trim().slice(0, 200);
@@ -414,7 +427,7 @@ function buildTrayMenu() {
       checked: app.getLoginItemSettings().openAtLogin,
       click: (item) => app.setLoginItemSettings({ openAtLogin: item.checked }),
     },
-    {
+    EDITION.search && {
       label: '검색용 API 키 지우기',
       enabled: !!s.apiKey,
       click: () => saveSettings({ apiKey: null }),
@@ -434,7 +447,7 @@ function buildTrayMenu() {
     { label: `버전 ${APP_VERSION}`, enabled: false },
     { type: 'separator' },
     { label: '종료', click: () => { isQuitting = true; app.quit(); } },
-  ]);
+  ].filter(Boolean));
 }
 
 function createTray() {

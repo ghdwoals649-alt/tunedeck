@@ -20,9 +20,9 @@ const EDITION = (() => {
   try {
     const base = global.TUNEDECK_BUNDLED_DIR || __dirname;
     const e = JSON.parse(fs.readFileSync(path.join(base, 'edition.json'), 'utf8'));
-    return { search: e.search !== false };
+    return { search: e.search !== false, updates: e.updates !== false };
   } catch {
-    return { search: true };
+    return { search: true, updates: true };
   }
 })();
 
@@ -316,7 +316,7 @@ ipcMain.on('app:applyUpdate', () => {
 
 // ---------- 자동 업데이트 ----------
 async function checkForUpdate() {
-  if (updateReady) return;
+  if (updateReady || !EDITION.updates) return; // zip 배포판은 자동 업데이트 안 함
   try {
     const v = await updater.checkAndDownload(APP_VERSION, __dirname);
     if (v) {
@@ -441,9 +441,9 @@ function buildTrayMenu() {
       },
     },
     { type: 'separator' },
-    updateReady
+    EDITION.updates && (updateReady
       ? { label: `새 버전 ${updateReady} 적용하고 다시 시작`, click: () => { isQuitting = true; app.relaunch(); app.exit(0); } }
-      : { label: '업데이트 확인', click: () => checkForUpdate() },
+      : { label: '업데이트 확인', click: () => checkForUpdate() }),
     { label: `버전 ${APP_VERSION}`, enabled: false },
     { type: 'separator' },
     { label: '종료', click: () => { isQuitting = true; app.quit(); } },

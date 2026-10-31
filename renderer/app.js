@@ -8,7 +8,7 @@
   const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
   const els = {
-    tape: $('tape'), tapeBody: document.querySelector('.tape-body'), deck: document.querySelector('.deck'),
+    tape: $('tape'), deck: document.querySelector('.deck'),
     labelImg: $('labelImg'), labelTitle: $('labelTitle'), labelArtist: $('labelArtist'),
     bgA: $('bgA'), bgB: $('bgB'),
     title: $('title'), artist: $('artist'), cur: $('cur'), dur: $('dur'), seek: $('seek'),
@@ -30,6 +30,10 @@
     volume: 80,
     opacity: 100,
   };
+  // 지금 모양(카세트/LP/CD)의 본체 요소 — 교체 애니메이션은 이 요소에 적용
+  let skin = 'cassette';
+  const BODY = { cassette: '.tape-body', lp: '.lp-body', cd: '.cd-body' };
+  const activeBody = () => document.querySelector(BODY[skin] || '.tape-body');
   let player = null;
   let playerReady = false;
   let isPlaying = false;
@@ -438,13 +442,16 @@
     if (id === labelId) return;
     labelId = id;
     setSpools(0);
-    els.labelImg.classList.remove('show');
-    if (id) {
-      els.labelImg.onload = () => els.labelImg.classList.add('show');
-      els.labelImg.src = thumb(id);
-    } else {
-      els.labelImg.removeAttribute('src');
-    }
+    // 카세트 사진 스티커, LP 라벨, CD 인쇄면 모두 같은 표지로
+    document.querySelectorAll('.cover-img').forEach((img) => {
+      img.classList.remove('show');
+      if (id) {
+        img.onload = () => img.classList.add('show');
+        img.src = thumb(id);
+      } else {
+        img.removeAttribute('src');
+      }
+    });
   }
 
   // 곡이 바뀌면: 테이프를 꺼내고 → 라벨 교체 → 새 테이프를 넣는다
@@ -459,9 +466,11 @@
   };
   // 카세트를 확실히 보이는 원래 상태로 되돌림 + 화면 다시 그리기
   function resetTape() {
-    els.tapeBody.getAnimations().forEach((a) => a.cancel());
-    els.tapeBody.style.top = '0px';
-    els.tapeBody.style.visibility = 'visible';
+    document.querySelectorAll('.tape-body, .disc-body').forEach((b) => {
+      b.getAnimations().forEach((a) => a.cancel());
+      b.style.top = '0px';
+      b.style.visibility = 'visible';
+    });
     els.tape.style.display = 'none';
     void els.tape.offsetHeight; // 강제로 다시 배치
     els.tape.style.display = '';
@@ -474,21 +483,21 @@
   // 위/아래로만 움직임(top). 투명도·회전은 쓰지 않음.
   async function animOut() {
     if (expanded) {
-      await run(els.tapeBody, [
+      await run(activeBody(), [
         { top: '0%' },
         { top: '-14%', offset: 0.3 },
         { top: '-175%' },
       ], { duration: 420, easing: 'cubic-bezier(.5,0,.75,0)' });
     } else {
-      await run(els.tapeBody, [{ top: '0%' }, { top: '-140%' }], { duration: 300, easing: 'ease-in' });
+      await run(activeBody(), [{ top: '0%' }, { top: '-140%' }], { duration: 300, easing: 'ease-in' });
     }
-    els.tapeBody.style.visibility = 'hidden';
+    activeBody().style.visibility = 'hidden';
   }
 
   async function animIn() {
-    els.tapeBody.style.visibility = 'visible';
+    activeBody().style.visibility = 'visible';
     if (expanded) {
-      await run(els.tapeBody, [
+      await run(activeBody(), [
         { top: '-175%' },
         { top: '-45%', offset: 0.42 },
         { top: '3%', offset: 0.78 },
@@ -499,7 +508,7 @@
       run(els.deck, [{ top: '4px' }, { top: '6px' }, { top: '4px' }], { duration: 180, easing: 'ease-out' })
         .then(() => els.deck.getAnimations().forEach((a) => a.cancel()));
     } else {
-      await run(els.tapeBody, [
+      await run(activeBody(), [
         { top: '-140%' },
         { top: '5%', offset: 0.75 },
         { top: '0%' },
@@ -871,7 +880,7 @@
   setInterval(() => {
     // 안전장치: 교체 중이 아닌데 카세트가 안 보이면 원래대로 되돌림
     if (!swapping && !busy) {
-      const cs = getComputedStyle(els.tapeBody);
+      const cs = getComputedStyle(activeBody());
       if (cs.visibility !== 'visible' || Math.abs(parseFloat(cs.top) || 0) > 1) resetTape();
     }
     if (!playerReady || !current()) return;
@@ -969,6 +978,39 @@
   }
   requestAnimationFrame(drawViz);
 
+  // ---------------- 모양 선택 ----------------
+  const skinBtn = $('skinBtn');
+  const skinMenu = $('skinMenu');
+  function applySkin(name) {
+    if (!BODY[name]) name = 'cassette';
+    skin = name;
+    appEl.classList.remove('skin-cassette', 'skin-lp', 'skin-cd');
+    appEl.classList.add('skin-' + name);
+    skinMenu.querySelectorAll('.skin-opt').forEach((b) => b.setAttribute('aria-checked', String(b.dataset.skin === name)));
+    resetTape();
+  }
+  function toggleSkinMenu(show) {
+    skinMenu.hidden = !show;
+    skinBtn.setAttribute('aria-expanded', String(show));
+  }
+  skinBtn.addEventListener('click', (e) => { e.stopPropagation(); toggleSkinMenu(skinMenu.hidden); });
+  skinMenu.addEventListener('click', async (e) => {
+    const opt = e.target.closest('.skin-opt');
+    if (!opt || opt.dataset.skin === skin || swapping || busy) return;
+    e.stopPropagation();
+    const name = opt.dataset.skin;
+    // 접혀 있을 때 창 크기가 바뀌므로, 먼저 메인에 알리고 모양을 바꿈
+    if (api?.setSkin) await api.setSkin(name);
+    appEl.classList.add('no-anim');
+    applySkin(name);
+    await frame();
+    appEl.classList.remove('no-anim');
+    api?.repaint?.();
+  });
+  document.addEventListener('click', (e) => {
+    if (!skinMenu.hidden && !e.target.closest('#skinMenu, #skinBtn')) toggleSkinMenu(false);
+  });
+
   // ---------------- 접기 / 펼치기 ----------------
   const wait = (ms) => new Promise((r) => setTimeout(r, ms));
   const frame = () => new Promise((r) => requestAnimationFrame(() => r()));
@@ -1001,6 +1043,7 @@
   async function collapse() {
     if (!expanded || busy) return;
     busy = true;
+    toggleSkinMenu(false);
     const back = api ? await api.prepareCollapse() : { left: 12, top: 12 };
     setStart(back);
     expanded = false;
@@ -1097,6 +1140,7 @@
   // ---------------- 시작 ----------------
   (async () => {
     applyEdition(api?.getEdition ? await api.getEdition().catch(() => null) : null);
+    applySkin(api?.getSkin ? await api.getSkin().catch(() => 'cassette') : 'cassette');
     const saved = api ? await api.loadState() : null;
     if (saved && Array.isArray(saved.items)) {
       state.items = saved.items.filter((it) => it && /^[\w-]{11}$/.test(it.id));
@@ -1121,6 +1165,6 @@
   // 미리보기/테스트용
   window.__tunedeck = {
     state, expand, collapse, renderNow, renderQueue, setPlaying, parseLink, playAt, setSpools,
-    setResults: (r) => { results = r; renderResults(); }, showTab, levels,
+    setResults: (r) => { results = r; renderResults(); }, showTab, levels, applySkin,
   };
 })();

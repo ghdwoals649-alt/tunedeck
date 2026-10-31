@@ -19,6 +19,8 @@ contextBridge.exposeInMainWorld('api', {
   setOpacity: (v) => ipcRenderer.send('win:opacity', v),
   repaint: () => ipcRenderer.send('win:repaint'),
   getEdition: () => ipcRenderer.invoke('app:edition'),
+  getSkin: () => ipcRenderer.invoke('skin:get'),
+  setSkin: (name) => ipcRenderer.invoke('skin:set', name),
   hasKey: () => ipcRenderer.invoke('yt:hasKey'),
   setKey: (key) => ipcRenderer.invoke('yt:setKey', key),
   search: (q) => ipcRenderer.invoke('yt:search', q),

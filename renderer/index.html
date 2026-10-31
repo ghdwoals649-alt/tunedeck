@@ -11,7 +11,7 @@
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <div id="app" class="collapsed">
+  <div id="app" class="collapsed skin-cassette">
     <!-- 펼쳤을 때의 패널 -->
     <main class="panel" aria-hidden="true">
       <div class="backdrop" aria-hidden="true">
@@ -30,12 +30,33 @@
           <input id="opacity" type="range" min="30" max="100" value="100" aria-label="투명도">
         </label>
         <span class="spacer"></span>
+        <button id="skinBtn" class="icon-btn small" title="모양 바꾸기" aria-label="모양 바꾸기" aria-haspopup="true" aria-expanded="false">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M12 2.8v2.4M12 18.8v2.4M2.8 12h2.4M18.8 12h2.4M5.5 5.5l1.7 1.7M16.8 16.8l1.7 1.7M5.5 18.5l1.7-1.7M16.8 7.2l1.7-1.7"/></svg>
+        </button>
         <button id="collapseBtn" class="icon-btn small" title="접기 (Esc)" aria-label="접기">
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5l7 7-7 7"/></svg>
         </button>
         <button id="quitBtn" class="icon-btn small" title="TuneDeck 종료" aria-label="TuneDeck 종료">
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v8"/><path d="M7.2 7.2a7 7 0 1 0 9.6 0"/></svg>
         </button>
+      </div>
+
+      <div id="skinMenu" class="skin-menu" role="radiogroup" aria-label="모양" hidden>
+        <p class="skin-title">모양</p>
+        <div class="skin-options">
+          <button type="button" class="skin-opt" role="radio" data-skin="cassette" aria-checked="true">
+            <svg viewBox="0 0 40 26" aria-hidden="true"><rect x="1" y="1" width="38" height="24" rx="3"/><rect x="11" y="8" width="18" height="7" rx="2"/><circle cx="15" cy="11.5" r="1.8"/><circle cx="25" cy="11.5" r="1.8"/></svg>
+            <span>카세트</span>
+          </button>
+          <button type="button" class="skin-opt" role="radio" data-skin="lp" aria-checked="false">
+            <svg viewBox="0 0 40 26" aria-hidden="true"><circle cx="20" cy="13" r="12"/><circle cx="20" cy="13" r="8.5" class="thin"/><circle cx="20" cy="13" r="4"/></svg>
+            <span>LP</span>
+          </button>
+          <button type="button" class="skin-opt" role="radio" data-skin="cd" aria-checked="false">
+            <svg viewBox="0 0 40 26" aria-hidden="true"><circle cx="20" cy="13" r="12"/><circle cx="20" cy="13" r="4.5"/><circle cx="20" cy="13" r="1.5"/><path class="thin" d="M12 6.5a10 10 0 0 1 6-2.2"/></svg>
+            <span>CD</span>
+          </button>
+        </div>
       </div>
 
       <div id="updateBar" class="update-bar" hidden>
@@ -127,7 +148,7 @@
         </svg>
 
         <span class="label">
-          <span class="photo"><img id="labelImg" alt=""></span>
+          <span class="photo"><img id="labelImg" class="cover-img" alt=""></span>
           <span class="side">A</span>
           <span id="labelTitle" class="ltitle">TuneDeck</span>
           <span id="labelArtist" class="lartist">mixtape</span>
@@ -161,9 +182,37 @@
             <rect x="143" y="160" width="14" height="14" rx="2"/>
           </g>
         </svg>
-        <span id="viz" class="viz" aria-hidden="true"></span>
       </span>
+
+      <!-- LP -->
+      <span class="disc-body lp-body">
+        <span class="platter">
+          <span class="grooves"></span>
+          <span class="lp-label"><img class="cover-img" alt=""></span>
+          <span class="lp-hole"></span>
+        </span>
+        <span class="lp-sheen"></span>
+      </span>
+
+      <!-- CD -->
+      <span class="disc-body cd-body">
+        <span class="platter">
+          <img class="cover-img cd-print" alt="">
+          <span class="cd-hub"></span>
+          <span class="cd-hole"></span>
+        </span>
+        <span class="cd-sheen"></span>
+      </span>
+
+      <span id="viz" class="viz" aria-hidden="true"></span>
     </button>
+
+    <svg class="tonearm" viewBox="0 0 90 230" aria-hidden="true">
+      <circle class="base" cx="62" cy="22" r="15"/>
+      <circle class="pivot" cx="62" cy="22" r="6"/>
+      <path class="arm" d="M62 22 L58 150 Q56 178 30 196"/>
+      <rect class="head" x="14" y="190" width="22" height="13" rx="3" transform="rotate(-38 25 196)"/>
+    </svg>
 
     <!-- 소리만 재생: YouTube 플레이어는 보이지 않게 둔다 -->
     <div id="playerHost" aria-hidden="true"><div id="player"></div></div>

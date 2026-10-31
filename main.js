@@ -26,11 +26,29 @@ const EDITION = (() => {
   }
 })();
 
-// 접힌 창: 카세트 전체(154x98) + 그림자 여백 12
-const TAPE = { w: 154, h: 98, pad: 12 };
-const COLLAPSED = { w: TAPE.w + TAPE.pad * 2, h: TAPE.h + TAPE.pad * 2 };
-// 펼친 창 안에서 데크에 꽂힌 카세트 위치/크기 (renderer/style.css 와 같은 값)
-const SLOT = { x: 35, y: 55, w: 210, h: 134 };
+// 모양(카세트/LP/CD)별 크기. tape = 접힌 위젯 크기, slot = 펼친 창 안에서 데크에 놓인 위치/크기
+// (renderer/style.css 의 .skin-* 값과 같아야 함)
+const SKINS = {
+  cassette: { tape: { w: 154, h: 98 }, slot: { x: 35, y: 55, w: 210, h: 134 } },
+  lp: { tape: { w: 112, h: 112 }, slot: { x: 62, y: 46, w: 156, h: 156 } },
+  cd: { tape: { w: 108, h: 108 }, slot: { x: 66, y: 50, w: 148, h: 148 } },
+};
+let skinName = 'cassette';
+const TAPE = {
+  pad: 12,
+  get w() { return SKINS[skinName].tape.w; },
+  get h() { return SKINS[skinName].tape.h; },
+};
+const COLLAPSED = {
+  get w() { return TAPE.w + TAPE.pad * 2; },
+  get h() { return TAPE.h + TAPE.pad * 2; },
+};
+const SLOT = {
+  get x() { return SKINS[skinName].slot.x; },
+  get y() { return SKINS[skinName].slot.y; },
+  get w() { return SKINS[skinName].slot.w; },
+  get h() { return SKINS[skinName].slot.h; },
+};
 const EXPANDED_W = 280;
 const EXPANDED_MAX_H = 620;
 
@@ -381,6 +399,20 @@ async function ytSearch(q, key, max = 20) {
 }
 
 ipcMain.handle('app:edition', () => EDITION);
+
+// 모양 바꾸기: 접힌 위젯의 중심은 그대로 두고 크기만 바꿈
+ipcMain.handle('skin:get', () => skinName);
+ipcMain.handle('skin:set', (_e, name) => {
+  if (!SKINS[name] || name === skinName) return skinName;
+  const d = getDock();
+  const cx = d.x + COLLAPSED.w / 2;
+  const cy = d.y + COLLAPSED.h / 2;
+  skinName = name;
+  saveSettings({ skin: name });
+  setDock({ x: cx - COLLAPSED.w / 2, y: cy - COLLAPSED.h / 2 });
+  if (!expanded) applyBounds(collapsedBounds());
+  return skinName;
+});
 ipcMain.handle('yt:hasKey', () => !!settings().apiKey);
 ipcMain.handle('yt:setKey', async (_e, key) => {
   key = String(key || '').trim();
@@ -467,6 +499,7 @@ ipcMain.on('now-playing', (_e, title) => {
 app.whenReady().then(async () => {
   app.setAppUserModelId('com.tunedeck.app');
   Menu.setApplicationMenu(null);
+  if (SKINS[settings().skin]) skinName = settings().skin;
   await startServer();
 
   // 음량 막대용: PC에서 나오는 소리(루프백)만 앱 화면에 넘겨줌. 녹음·전송하지 않음.

@@ -8,6 +8,10 @@ const fs = require('fs');
 const http = require('http');
 const updater = require('./updater');
 
+// Windows 투명 창 + GPU 합성에서 카세트가 안 그려지는 문제를 피하려고 소프트웨어 렌더링 사용
+// (작은 위젯이라 성능 차이는 거의 없음)
+app.disableHardwareAcceleration();
+
 const APP_VERSION = JSON.parse(fs.readFileSync(path.join(__dirname, 'package.json'), 'utf8')).version;
 let updateReady = null;
 
@@ -287,10 +291,8 @@ ipcMain.on('dock:end', () => {
 ipcMain.on('app:quit', () => { isQuitting = true; app.quit(); });
 
 // 위젯 투명도는 CSS가 아니라 창 자체에 적용 (Windows 투명 창에서 CSS 투명도는 화면이 안 그려지는 문제가 있음)
-ipcMain.on('win:opacity', (_e, v) => {
-  const o = Math.max(0.3, Math.min(1, Number(v) || 1));
-  win?.setOpacity(o);
-});
+// 예전 버전 호환용: 창 투명도는 항상 100%로 두고, 투명도는 화면 안의 배경색으로 처리함
+ipcMain.on('win:opacity', () => { try { win?.setOpacity(1); } catch {} });
 // 화면 전체를 강제로 다시 그림 (애니메이션·창 크기 변경 뒤 잔상/사라짐 방지)
 const repaint = () => { try { win?.webContents.invalidate(); } catch {} };
 ipcMain.on('win:repaint', repaint);

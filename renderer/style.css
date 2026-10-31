@@ -14,6 +14,7 @@
   --serif: 'Gowun Batang', 'Batang', serif;
   --sans: 'IBM Plex Sans KR', 'Malgun Gothic', system-ui, sans-serif;
   --pen: 'Nanum Pen Script', 'Gowun Batang', cursive;
+  --alpha: 1; /* 투명도 슬라이더 값 (0.3~1) — 배경/몸체 색에만 적용 */
 }
 
 * { box-sizing: border-box; }
@@ -41,7 +42,7 @@ svg { display: block; }
   flex-direction: column;
   border-radius: 20px;
   overflow: hidden;
-  background: rgb(var(--scrim));
+  background: rgba(var(--scrim), var(--alpha));
   box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08);
   opacity: 0;
   transform: scale(0.96);
@@ -56,7 +57,8 @@ svg { display: block; }
   transition-delay: 0.05s;
 }
 
-.backdrop, .scrim { position: absolute; inset: 0; pointer-events: none; }
+.backdrop, .scrim {
+  opacity: var(--alpha); position: absolute; inset: 0; pointer-events: none; }
 .backdrop {
   background:
     radial-gradient(120% 70% at 70% 10%, #3a2f45 0%, transparent 60%),
@@ -73,7 +75,7 @@ svg { display: block; }
   opacity: 0;
   transition: opacity 0.9s ease;
 }
-.backdrop img.show { opacity: 1; }
+.backdrop img.show { opacity: var(--alpha); }
 .scrim {
   background: linear-gradient(
     to bottom,
@@ -140,7 +142,7 @@ svg { display: block; }
   width: 232px;
   height: 156px;
   border-radius: 16px;
-  background: linear-gradient(to bottom, #1f1c24, #151319);
+  background: linear-gradient(to bottom, rgba(31, 28, 36, var(--alpha)), rgba(21, 19, 25, var(--alpha)));
   box-shadow:
     inset 0 3px 14px rgba(0, 0, 0, 0.7),
     inset 0 0 0 1px rgba(255, 255, 255, 0.05),
@@ -530,6 +532,7 @@ input[type='range']:focus-visible::-webkit-slider-thumb { transform: scale(1); }
 .collapsed .cassette:hover .tape-body { box-shadow: 0 7px 16px rgba(0, 0, 0, 0.6); }
 .expanded .tape-body { box-shadow: 0 3px 8px rgba(0, 0, 0, 0.5); }
 .shell, .front { position: absolute; inset: 0; width: 100%; height: 100%; }
+.shell .body { fill-opacity: var(--alpha); }
 .screw circle { fill: #18161b; stroke: rgba(255, 255, 255, 0.18); stroke-width: 1; }
 
 .label {
@@ -542,7 +545,7 @@ input[type='range']:focus-visible::-webkit-slider-thumb { transform: scale(1); }
   overflow: hidden;
   background:
     repeating-linear-gradient(to bottom, transparent 0 6.4cqw, rgba(120, 100, 80, 0.16) 6.4cqw 6.6cqw),
-    var(--label);
+    rgba(239, 230, 210, calc(0.35 + 0.65 * var(--alpha)));
   color: var(--ink);
   box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.12);
 }
@@ -610,7 +613,7 @@ input[type='range']:focus-visible::-webkit-slider-thumb { transform: scale(1); }
   text-overflow: ellipsis;
 }
 
-.front .window { fill: rgba(16, 14, 19, 0.88); stroke: rgba(0, 0, 0, 0.5); stroke-width: 1.5; }
+.front .window { fill: rgba(16, 14, 19, calc(0.88 * var(--alpha))); stroke: rgba(0, 0, 0, 0.5); stroke-width: 1.5; }
 .front .window-glare { fill: rgba(255, 255, 255, 0.04); pointer-events: none; }
 .front .spool {
   fill: #3d2b20;
@@ -630,7 +633,7 @@ input[type='range']:focus-visible::-webkit-slider-thumb { transform: scale(1); }
 .front .hub-ring { fill: #ece6da; }
 .front .hub-hole { fill: #1b1820; }
 .front .teeth rect { fill: #ece6da; }
-.front .bridge { fill: rgba(255, 255, 255, 0.05); stroke: rgba(0, 0, 0, 0.4); stroke-width: 1; }
+.front .bridge { fill: rgba(255, 255, 255, calc(0.05 * var(--alpha))); stroke: rgba(0, 0, 0, 0.4); stroke-width: 1; }
 .front .holes > * { fill: #141217; stroke: rgba(255, 255, 255, 0.08); }
 
 /* 음량 막대 (카세트 하단에 겹침) */
@@ -639,10 +642,19 @@ input[type='range']:focus-visible::-webkit-slider-thumb { transform: scale(1); }
   left: 7%;
   right: 7%;
   bottom: 4%;
-  width: 86%;
   height: 30%;
-  opacity: 0.6;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
   pointer-events: none;
+}
+.viz i {
+  display: block;
+  width: 2.2%;
+  height: 6%;
+  border-radius: 1cqw 1cqw 0 0;
+  /* 투명도 60% 막대 (요소 opacity 대신 색 투명도) */
+  background: linear-gradient(to top, rgba(216, 178, 110, 0.6), rgba(243, 239, 231, 0.6));
 }
 
 #resolver {

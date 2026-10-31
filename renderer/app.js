@@ -448,7 +448,7 @@
     els.tape.style.display = 'none';
     void els.tape.offsetHeight; // 강제로 다시 배치
     els.tape.style.display = '';
-    api?.repaint();
+    api?.repaint?.();
   }
   let swapping = false;
   let swapAgain = false;
@@ -818,8 +818,10 @@
   }
   // 위젯 전체 투명도 (30~100%)
   function applyOpacity() {
-    if (api?.setOpacity) api.setOpacity(state.opacity / 100);
-    else appEl.style.opacity = String(state.opacity / 100); // 미리보기용
+    // 창이나 요소 전체를 흐리게 하지 않고, 배경·몸체 색의 투명도만 바꿈 (글자는 선명하게 유지)
+    document.documentElement.style.setProperty('--alpha', (state.opacity / 100).toFixed(2));
+    api?.setOpacity?.(1);
+    api?.repaint?.();
     els.opacity.value = state.opacity;
     paintRange(els.opacity);
   }
@@ -926,33 +928,26 @@
     }
   }
 
-  const vctx = els.viz.getContext('2d');
-  function sizeViz() {
-    const r = els.viz.getBoundingClientRect();
-    const dpr = window.devicePixelRatio || 1;
-    els.viz.width = Math.max(1, Math.round(r.width * dpr));
-    els.viz.height = Math.max(1, Math.round(r.height * dpr));
+  // 막대는 일반 요소로 그림 (캔버스는 Windows 투명 창에서 다른 요소까지 안 보이게 만드는 문제가 있음)
+  const barEls = [];
+  for (let i = 0; i < BARS; i++) {
+    const b = document.createElement('i');
+    els.viz.appendChild(b);
+    barEls.push(b);
   }
-  new ResizeObserver(sizeViz).observe(els.viz);
-
-  function drawViz() {
-    sampleLevels();
-    const w = els.viz.width, h = els.viz.height;
-    vctx.clearRect(0, 0, w, h);
-    const gap = w / BARS;
-    const bw = Math.max(1, gap * 0.56);
-    const grad = vctx.createLinearGradient(0, h, 0, 0);
-    grad.addColorStop(0, '#d8b26e');
-    grad.addColorStop(1, '#f3efe7');
-    vctx.fillStyle = grad;
-    for (let i = 0; i < BARS; i++) {
-      const bh = Math.max(h * 0.06, levels[i] * h);
-      const x = i * gap + (gap - bw) / 2;
-      const y = h - bh;
-      const r = Math.min(bw / 2, bh / 2);
-      vctx.beginPath();
-      vctx.roundRect ? vctx.roundRect(x, y, bw, bh, [r, r, 0, 0]) : vctx.rect(x, y, bw, bh);
-      vctx.fill();
+  const shown = new Float32Array(BARS);
+  let lastDraw = 0;
+  function drawViz(ts) {
+    if (ts - lastDraw >= 33) { // 약 30fps면 충분
+      lastDraw = ts;
+      sampleLevels();
+      for (let i = 0; i < BARS; i++) {
+        const v = Math.max(0.06, Math.min(1, levels[i]));
+        if (Math.abs(v - shown[i]) > 0.01) {
+          shown[i] = v;
+          barEls[i].style.height = (v * 100).toFixed(1) + '%';
+        }
+      }
     }
     requestAnimationFrame(drawViz);
   }
@@ -983,7 +978,7 @@
     els.tape.setAttribute('aria-label', '데크에 꽂힌 카세트');
     renderQueue();
     await wait(560);
-    api?.repaint();
+    api?.repaint?.();
     busy = false;
   }
 

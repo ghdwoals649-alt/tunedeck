@@ -30,6 +30,7 @@
     volume: 80,
     opacity: 100,
     secrets: false, // 숨은 테마를 찾았는지
+    rate: 1, // 재생 속도 0.5~2
   };
   // 지금 테마의 본체 요소 — 교체 애니메이션은 이 요소에 적용
   let skin = 'cassette';
@@ -69,7 +70,7 @@
     saveTimer = setTimeout(() => {
       api?.saveState({
         items: state.items, index: state.index,
-        shuffle: state.shuffle, repeat: state.repeat, volume: state.volume, opacity: state.opacity, secrets: state.secrets,
+        shuffle: state.shuffle, repeat: state.repeat, volume: state.volume, opacity: state.opacity, secrets: state.secrets, rate: state.rate,
       });
     }, 250);
   }
@@ -400,6 +401,7 @@
           const S = YT.PlayerState;
           if (e.data === S.PLAYING) {
             setPlaying(true);
+            ensureRate(); // 새 곡을 틀면 YouTube가 속도를 1배로 되돌리므로 다시 맞춤
             errorStreak = 0;
             const it = current();
             if (it && it.broken) { delete it.broken; renderQueue(); save(); }
@@ -847,6 +849,31 @@
     const pct = ((input.value - input.min) / (input.max - input.min)) * 100;
     input.style.setProperty('--pct', pct + '%');
   }
+  // 재생 속도 (0.5×~2×, 0.25 단위). 카세트 릴·LP 회전도 같이 빨라지고 느려짐
+  const speedEl = $('speed');
+  const speedVal = $('speedVal');
+  const fmtRate = (r) => (Number.isInteger(r) ? String(r) : String(r).replace(/0+$/, '')) + '×';
+  function ensureRate() {
+    if (!playerReady || !player.setPlaybackRate) return;
+    try {
+      if (player.getPlaybackRate() !== state.rate) player.setPlaybackRate(state.rate);
+    } catch {}
+  }
+  function applyRate(persist = true) {
+    speedEl.value = state.rate;
+    paintRange(speedEl);
+    speedVal.textContent = fmtRate(state.rate);
+    speedEl.closest('.speed').classList.toggle('changed', state.rate !== 1);
+    document.documentElement.style.setProperty('--rate', String(state.rate));
+    ensureRate();
+    if (persist) save();
+  }
+  speedEl.addEventListener('input', () => {
+    state.rate = Math.max(0.5, Math.min(2, Math.round(+speedEl.value * 4) / 4));
+    applyRate();
+  });
+  speedVal.addEventListener('click', () => { state.rate = 1; applyRate(); });
+
   // 위젯 전체 투명도 (30~100%)
   function applyOpacity() {
     // 위젯 전체(패널·카세트·글자)를 흐리게 함. 창 자체의 투명도 기능(setOpacity)은 쓰지 않음.
@@ -1173,9 +1200,11 @@
       state.volume = Number.isFinite(saved.volume) ? saved.volume : 80;
       state.opacity = Number.isFinite(saved.opacity) ? Math.max(30, Math.min(100, saved.opacity)) : 100;
       state.secrets = !!saved.secrets;
+      state.rate = [0.5, 0.75, 1, 1.25, 1.5, 1.75, 2].includes(saved.rate) ? saved.rate : 1;
     }
     if (SECRET.includes(skin)) state.secrets = true; // 숨은 테마를 쓰고 있으면 메뉴에도 보이게
     applySecrets();
+    applyRate(false);
     els.volume.value = state.volume;
     paintRange(els.volume);
     applyOpacity();

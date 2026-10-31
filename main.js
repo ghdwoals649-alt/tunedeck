@@ -10,7 +10,8 @@ const updater = require('./updater');
 
 // Windows 투명 창 + GPU 합성에서 카세트가 안 그려지는 문제를 피하려고 소프트웨어 렌더링 사용
 // (작은 위젯이라 성능 차이는 거의 없음)
-app.disableHardwareAcceleration();
+const IS_MAC = process.platform === 'darwin';
+if (!IS_MAC) app.disableHardwareAcceleration(); // 맥은 투명 창 문제가 없어서 GPU 그대로 사용
 
 const APP_VERSION = JSON.parse(fs.readFileSync(path.join(__dirname, 'package.json'), 'utf8')).version;
 let updateReady = null;
@@ -442,32 +443,6 @@ ipcMain.handle('yt:search', async (_e, q) => {
 // ---------- 트레이 ----------
 const sendMedia = (action) => win?.webContents.send('media', action);
 
-// ---------- 잠자기 타이머: 정한 시간이 되면 소리를 서서히 줄이고 멈춤 ----------
-let sleepTimer = null;
-let sleepAt = 0;
-let sleepMin = 0;
-function setSleep(min) {
-  clearTimeout(sleepTimer);
-  sleepTimer = null;
-  sleepAt = 0;
-  sleepMin = min;
-  if (min > 0) {
-    sleepAt = Date.now() + min * 60000;
-    sleepTimer = setTimeout(() => {
-      sleepTimer = null;
-      sleepAt = 0;
-      sleepMin = 0;
-      win?.webContents.send('sleep');
-    }, min * 60000);
-  }
-  tray?.setContextMenu(buildTrayMenu());
-}
-function sleepLabel() {
-  if (!sleepAt) return '잠자기 타이머';
-  const left = Math.max(1, Math.ceil((sleepAt - Date.now()) / 60000));
-  return `잠자기 타이머 (${left}분 남음)`;
-}
-
 function buildTrayMenu() {
   const s = settings();
   return Menu.buildFromTemplate([
@@ -476,16 +451,6 @@ function buildTrayMenu() {
     { label: '재생 / 일시정지', click: () => sendMedia('playPause') },
     { label: '다음 곡', click: () => sendMedia('next') },
     { label: '이전 곡', click: () => sendMedia('prev') },
-    {
-      label: sleepLabel(),
-      submenu: [
-        { label: '끄기', type: 'radio', checked: !sleepAt, click: () => setSleep(0) },
-        { label: '15분 뒤 멈추기', type: 'radio', checked: !!sleepAt && sleepMin === 15, click: () => setSleep(15) },
-        { label: '30분 뒤 멈추기', type: 'radio', checked: !!sleepAt && sleepMin === 30, click: () => setSleep(30) },
-        { label: '1시간 뒤 멈추기', type: 'radio', checked: !!sleepAt && sleepMin === 60, click: () => setSleep(60) },
-        { label: '2시간 뒤 멈추기', type: 'radio', checked: !!sleepAt && sleepMin === 120, click: () => setSleep(120) },
-      ],
-    },
     { type: 'separator' },
     {
       label: '항상 위에 표시',
@@ -523,7 +488,7 @@ function buildTrayMenu() {
 }
 
 function createTray() {
-  const img = nativeImage.createFromPath(path.join(__dirname, 'assets', 'icon.png')).resize({ width: 16, height: 16 });
+  const img = nativeImage.createFromPath(path.join(__dirname, 'assets', 'icon.png')).resize({ width: IS_MAC ? 18 : 16, height: IS_MAC ? 18 : 16 });
   tray = new Tray(img);
   tray.setToolTip('TuneDeck');
   tray.setContextMenu(buildTrayMenu());
@@ -538,13 +503,19 @@ ipcMain.on('now-playing', (_e, title) => {
 // ---------- 시작 ----------
 app.whenReady().then(async () => {
   app.setAppUserModelId('com.tunedeck.app');
-  Menu.setApplicationMenu(null);
+  if (IS_MAC) {
+    // 맥은 메뉴가 있어야 ⌘C/⌘V(복사·붙여넣기)와 ⌘Q(종료)가 동작함
+    Menu.setApplicationMenu(Menu.buildFromTemplate([{ role: 'appMenu' }, { role: 'editMenu' }]));
+  } else {
+    Menu.setApplicationMenu(null);
+  }
   if (SKINS[settings().skin]) skinName = settings().skin;
   await startServer();
 
   // 음량 막대용: PC에서 나오는 소리(루프백)만 앱 화면에 넘겨줌. 녹음·전송하지 않음.
   // TuneDeck 자체 화면에서 요청할 때만 허용하고, YouTube 플레이어 등 다른 곳의 요청은 거절.
-  session.defaultSession.setDisplayMediaRequestHandler((request, callback) => {
+  // (맥에서는 화면 녹화 권한을 요구하므로 쓰지 않음 → 음량 막대는 재생 중 움직이는 장식으로 대신함)
+  if (!IS_MAC) session.defaultSession.setDisplayMediaRequestHandler((request, callback) => {
     const origin = String(request.securityOrigin || request.frame?.url || '');
     if (!origin.startsWith(appOrigin())) return callback({});
     desktopCapturer.getSources({ types: ['screen'] })
@@ -577,3 +548,9 @@ app.whenReady().then(async () => {
 app.on('before-quit', () => { isQuitting = true; });
 app.on('will-quit', () => { globalShortcut.unregisterAll(); server?.close(); });
 app.on('window-all-closed', () => app.quit());
+// 맥: Dock 아이콘을 누르면 창을 보여 주고 펼치기
+app.on('activate', () => {
+  if (!win) return;
+  win.show();
+  if (!expanded) win.webContents.send('toggle');
+});

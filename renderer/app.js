@@ -915,6 +915,8 @@
     if (analyser || vizTried) return;
     vizTried = true;
     try {
+      // 맥에서는 화면 녹화 권한 창이 뜨므로 시도하지 않고 장식용 막대를 씀
+      if (/Mac/i.test(navigator.platform || '')) throw new Error('mac');
       if (!navigator.mediaDevices || !navigator.mediaDevices.getDisplayMedia) throw new Error('unsupported');
       const stream = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: true });
       stream.getVideoTracks().forEach((t) => t.stop()); // 화면은 쓰지 않음
@@ -1095,81 +1097,11 @@
   });
   $('updateBtn').addEventListener('click', () => api?.applyUpdate());
 
-  // ---------------- 이스터에그: 카세트를 좌우로 흔들면 테이프가 엉키고, 연필로 다시 감음 ----------------
-  let rewinding = false;
-  let lastRewind = 0;
-  function detectShake(x) {
-    if (!press || skin !== 'cassette' || rewinding || swapping) return;
-    const dx = x - press.lastX;
-    if (Math.abs(dx) < 6) return;
-    const dir = Math.sign(dx);
-    press.lastX = x;
-    if (press.dir && dir !== press.dir) {
-      const now = Date.now();
-      press.flips = press.flips.filter((t) => now - t < 1200);
-      press.flips.push(now);
-      if (press.flips.length >= 6 && now - lastRewind > 4000) {
-        press.flips = [];
-        lastRewind = now;
-        rewindEgg();
-      }
-    }
-    press.dir = dir;
-  }
-
-  async function rewindEgg() {
-    if (rewinding) return;
-    rewinding = true;
-    const egg = document.querySelector('.egg');
-    const tangle = egg.querySelector('.tangle');
-    const pencil = egg.querySelector('.pencil');
-    appEl.classList.add('rewinding');
-    try {
-      // 1) 테이프가 엉켜서 삐져나옴
-      await run(tangle, [{ strokeDashoffset: 100 }, { strokeDashoffset: 0 }], { duration: 650, easing: 'ease-out' });
-      say('앗, 테이프가 엉켰어요!');
-      // 2) 연필 등장 → 릴에 꽂힘
-      await run(pencil, [{ transform: 'translate(-70px, -110px)' }, { transform: 'translate(0px, 0px)' }],
-        { duration: 450, easing: 'cubic-bezier(.3,.7,.4,1)' });
-      // 3) 빙글빙글 감으면서 테이프가 다시 들어감
-      appEl.classList.add('cranking');
-      await Promise.all([
-        run(pencil, [{ transform: 'rotate(0deg)' }, { transform: 'rotate(1080deg)' }], { duration: 1800, easing: 'ease-in-out' }),
-        run(tangle, [{ strokeDashoffset: 0 }, { strokeDashoffset: 100 }], { duration: 1800, easing: 'ease-in' }),
-      ]);
-      appEl.classList.remove('cranking');
-      // 4) 연필 퇴장
-      await run(pencil, [{ transform: 'translate(0px, 0px)' }, { transform: 'translate(-70px, -110px)' }], { duration: 350, easing: 'ease-in' });
-      say('연필로 테이프를 다시 감았어요 ✏️');
-    } finally {
-      [tangle, pencil].forEach((el) => el.getAnimations().forEach((a) => a.cancel()));
-      appEl.classList.remove('rewinding', 'cranking');
-      rewinding = false;
-      api?.repaint?.();
-    }
-  }
-
-  // ---------------- 잠자기 타이머: 소리를 서서히 줄이다가 멈춤 ----------------
-  let sleeping = false;
-  async function sleepFade() {
-    if (!playerReady || !isPlaying || sleeping) return;
-    sleeping = true;
-    const steps = 32;
-    for (let i = 1; i <= steps; i++) {
-      try { player.setVolume(Math.round(state.volume * (1 - i / steps))); } catch {}
-      await new Promise((r) => setTimeout(r, 250)); // 약 8초
-    }
-    try { player.pauseVideo(); player.setVolume(state.volume); } catch {}
-    sleeping = false;
-    say('잘 자요 🌙 잠자기 타이머로 음악을 멈췄어요.');
-  }
-  api?.onSleep?.(sleepFade);
-
   // 끌어서 옮기기: 접힌 카세트는 어디든, 펼친 상태에선 위쪽 빈 곳이나 카세트를 잡고
   let press = null;
   function startPress(e, el, clickAction) {
     if (e.button !== 0 || busy) return;
-    press = { x: e.screenX, y: e.screenY, dragging: false, clickAction, lastX: e.screenX, dir: 0, flips: [] };
+    press = { x: e.screenX, y: e.screenY, dragging: false, clickAction };
     el.setPointerCapture(e.pointerId);
   }
   function movePress(e) {
@@ -1179,10 +1111,7 @@
       document.body.style.cursor = 'grabbing';
       api?.dragStart(press.x, press.y);
     }
-    if (press.dragging) {
-      api?.dragMove(e.screenX, e.screenY);
-      detectShake(e.screenX);
-    }
+    if (press.dragging) api?.dragMove(e.screenX, e.screenY);
   }
   function endPress() {
     if (!press) return;
@@ -1264,6 +1193,6 @@
   // 미리보기/테스트용
   window.__tunedeck = {
     state, expand, collapse, renderNow, renderQueue, setPlaying, parseLink, playAt, setSpools,
-    setResults: (r) => { results = r; renderResults(); }, showTab, levels, applySkin, rewindEgg, unlock: () => { state.secrets = true; applySecrets(); },
+    setResults: (r) => { results = r; renderResults(); }, showTab, levels, applySkin, unlock: () => { state.secrets = true; applySecrets(); },
   };
 })();

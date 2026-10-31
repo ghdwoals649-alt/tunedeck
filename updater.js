@@ -6,7 +6,7 @@ const fs = require('fs');
 
 const REPO = 'ghdwoals649-alt/tunedeck';
 const BRANCH = 'main';
-const RAW = `https://raw.githubusercontent.com/${REPO}/${BRANCH}/`;
+const RAW = `https://raw.githubusercontent.com/${REPO}/`;
 
 function newer(a, b) {
   const pa = String(a).split('.').map(Number);
@@ -17,8 +17,23 @@ function newer(a, b) {
   return false;
 }
 
+// 최신 커밋 ID를 알아내서 그 커밋의 파일을 받음 (브랜치 주소는 GitHub 캐시 때문에 몇 분 늦게 바뀜)
+async function latestRef() {
+  try {
+    const res = await net.fetch(`https://api.github.com/repos/${REPO}/commits/${BRANCH}`, {
+      headers: { Accept: 'application/vnd.github.sha' }, cache: 'no-store',
+    });
+    if (res.ok) {
+      const sha = (await res.text()).trim();
+      if (/^[0-9a-f]{40}$/.test(sha)) return sha;
+    }
+  } catch {}
+  return BRANCH; // API 한도 초과 등 → 브랜치 주소로 대신
+}
+
+let ref = BRANCH;
 async function fetchRaw(file) {
-  const url = RAW + file.split('/').map(encodeURIComponent).join('/') + `?t=${Date.now()}`;
+  const url = RAW + ref + '/' + file.split('/').map(encodeURIComponent).join('/') + `?t=${Date.now()}`;
   const res = await net.fetch(url, { cache: 'no-store' });
   if (!res.ok) throw new Error(`${file}: HTTP ${res.status}`);
   return Buffer.from(await res.arrayBuffer());
@@ -31,6 +46,7 @@ const SAFE = /^(?!.*\.\.)[A-Za-z0-9_][A-Za-z0-9_./-]*$/;
  * runningDir: 지금 실행 중인 앱 폴더 (정리할 때 지우지 않도록)
  */
 async function checkAndDownload(currentVersion, runningDir) {
+  ref = await latestRef();
   const manifest = JSON.parse((await fetchRaw('version.json')).toString('utf8'));
   const version = String(manifest.version || '');
   if (!/^\d+\.\d+\.\d+$/.test(version) || !newer(version, currentVersion)) return null;

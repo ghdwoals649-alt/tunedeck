@@ -721,7 +721,7 @@ input[type='range']:focus-visible::-webkit-slider-thumb { transform: scale(1); }
   inset: 0;
   border-radius: 50%;
   overflow: hidden;
-  animation: reel 1.8s linear infinite paused; /* LP 33⅓rpm */
+  animation: reel 6s linear infinite paused; /* LP: 실제 속도보다 느리게, 보기 편한 속도 */
 }
 .playing .disc-body .platter { animation-play-state: running; }
 .swapping .disc-body .platter { animation-play-state: paused; }
@@ -768,7 +768,7 @@ input[type='range']:focus-visible::-webkit-slider-thumb { transform: scale(1); }
 /* CD */
 .cd-body { box-shadow: 0 4px 10px rgba(0, 0, 0, 0.45); }
 .cd-body .platter {
-  animation-duration: 1.1s;
+  animation-duration: 4.5s; /* CD: 보기 편한 속도 */
   background: conic-gradient(from 0deg, #d9dde4, #f5f6f8, #c4cad3, #eef0f3, #cfd4dc, #f5f6f8, #d9dde4);
 }
 .cd-print {
@@ -850,6 +850,7 @@ input[type='range']:focus-visible::-webkit-slider-thumb { transform: scale(1); }
 .cassette:focus-visible { outline-offset: 4px; border-radius: 10px; }
 
 @media (prefers-reduced-motion: reduce) {
-  .front .hub, .disc-body .platter { animation-duration: 8s; }
+  .front .hub { animation-duration: 8s; }
+  .disc-body .platter { animation-duration: 16s; }
   .cassette, .panel { transition-duration: 0.01s !important; }
 }

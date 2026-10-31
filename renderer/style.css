@@ -1,0 +1,526 @@
+/* TuneDeck — vinyl widget
+   Palette: vinyl #18171C, groove #2A2830, paper #F3EFE7, brass #D8B26E, plum scrim #120F14 */
+:root {
+  --vinyl: #18171c;
+  --groove: #2a2830;
+  --paper: #f3efe7;
+  --paper-dim: rgba(243, 239, 231, 0.64);
+  --paper-faint: rgba(243, 239, 231, 0.14);
+  --brass: #d8b26e;
+  --brass-deep: #a9843f;
+  --scrim: 18, 15, 20;
+  --ease: cubic-bezier(0.22, 0.85, 0.24, 1);
+  --serif: 'Gowun Batang', 'Batang', serif;
+  --sans: 'IBM Plex Sans KR', 'Malgun Gothic', system-ui, sans-serif;
+}
+
+* { box-sizing: border-box; }
+html, body {
+  margin: 0;
+  height: 100%;
+  overflow: hidden;
+  background: transparent;
+  color: var(--paper);
+  font: 14px/1.5 var(--sans);
+  -webkit-font-smoothing: antialiased;
+  user-select: none;
+}
+button { font: inherit; color: inherit; }
+svg { display: block; }
+
+#app { position: fixed; inset: 0; }
+
+/* ---------------- 패널 ---------------- */
+.panel {
+  position: absolute;
+  inset: 0 0 0 0;
+  display: flex;
+  flex-direction: column;
+  border-radius: 24px 0 0 24px;
+  overflow: hidden;
+  background: rgb(var(--scrim));
+  box-shadow: inset 1px 0 0 rgba(255, 255, 255, 0.08);
+  opacity: 0;
+  transform: translateX(60px);
+  pointer-events: none;
+  transition: opacity 0.32s ease, transform 0.5s var(--ease);
+}
+.expanded .panel {
+  opacity: 1;
+  transform: none;
+  pointer-events: auto;
+  transition-delay: 0.05s;
+}
+
+.backdrop, .scrim { position: absolute; inset: 0; pointer-events: none; }
+.backdrop {
+  background:
+    radial-gradient(120% 70% at 70% 10%, #3a2f45 0%, transparent 60%),
+    radial-gradient(90% 60% at 10% 90%, #2a3a3a 0%, transparent 60%),
+    rgb(var(--scrim));
+}
+.backdrop img {
+  position: absolute;
+  inset: -15%;
+  width: 130%;
+  height: 130%;
+  object-fit: cover;
+  filter: blur(46px) saturate(1.35) brightness(0.72);
+  opacity: 0;
+  transition: opacity 0.9s ease;
+}
+.backdrop img.show { opacity: 1; }
+.scrim {
+  background: linear-gradient(
+    to bottom,
+    rgba(var(--scrim), 0.18) 0%,
+    rgba(var(--scrim), 0.42) 38%,
+    rgba(var(--scrim), 0.78) 72%,
+    rgba(var(--scrim), 0.9) 100%
+  );
+}
+.panel > *:not(.backdrop):not(.scrim) { position: relative; }
+
+.topbar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 16px 0;
+  height: 48px;
+  z-index: 3;
+}
+.volume { display: flex; align-items: center; gap: 6px; color: var(--paper-dim); }
+.volume svg { width: 18px; height: 18px; fill: currentColor; }
+.volume svg .wave { fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; }
+.volume input { width: 78px; }
+
+.icon-btn.small { width: 32px; height: 32px; color: var(--paper-dim); }
+.icon-btn.small:hover { color: var(--paper); }
+.icon-btn.small svg { width: 18px; height: 18px; }
+
+.update-bar {
+  position: absolute !important;
+  z-index: 7;
+  left: 16px;
+  right: 16px;
+  top: 52px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 7px 7px 7px 14px;
+  border-radius: 12px;
+  background: rgba(var(--scrim), 0.82);
+  box-shadow: inset 0 0 0 1px var(--brass), 0 8px 20px rgba(0, 0, 0, 0.4);
+  font-size: 12.5px;
+}
+.update-bar[hidden] { display: none; }
+.update-bar button {
+  border: 0;
+  border-radius: 999px;
+  padding: 5px 12px;
+  background: var(--brass);
+  color: #231b0d;
+  font-weight: 600;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.stage { height: 236px; flex: none; }
+
+/* ---------------- 지금 재생 ---------------- */
+.now { padding: 0 22px; flex: none; }
+
+.video-wrap {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  min-height: 200px;
+  border-radius: 12px;
+  overflow: hidden;
+  background: rgba(0, 0, 0, 0.35);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35), inset 0 0 0 1px rgba(255, 255, 255, 0.06);
+}
+.video-wrap iframe, #player { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
+.video-empty {
+  position: absolute;
+  inset: 0;
+  margin: 0;
+  display: grid;
+  place-items: center;
+  padding: 0 32px;
+  text-align: center;
+  color: var(--paper-dim);
+  font-size: 13px;
+}
+.has-track .video-empty { display: none; }
+
+.meta { margin-top: 16px; min-width: 0; }
+#title {
+  margin: 0;
+  font: 700 19px/1.35 var(--serif);
+  letter-spacing: -0.01em;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-wrap: balance;
+}
+#artist {
+  margin: 2px 0 0;
+  color: var(--paper-dim);
+  font-size: 13px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.progress {
+  display: grid;
+  grid-template-columns: 38px 1fr 38px;
+  align-items: center;
+  gap: 8px;
+  margin-top: 12px;
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  color: var(--paper-dim);
+}
+.progress span:last-child { text-align: right; }
+
+/* range slider */
+input[type='range'] {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 18px;
+  margin: 0;
+  background: transparent;
+  cursor: pointer;
+  --pct: 0%;
+}
+input[type='range']::-webkit-slider-runnable-track {
+  height: 3px;
+  border-radius: 3px;
+  background: linear-gradient(to right, var(--brass) var(--pct), var(--paper-faint) var(--pct));
+}
+input[type='range']::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 12px;
+  height: 12px;
+  margin-top: -4.5px;
+  border-radius: 50%;
+  background: var(--paper);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.5);
+  transform: scale(0.75);
+  transition: transform 0.15s;
+}
+input[type='range']:hover::-webkit-slider-thumb,
+input[type='range']:focus-visible::-webkit-slider-thumb { transform: scale(1); }
+
+.controls {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: 6px -6px 0;
+}
+.icon-btn {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--paper);
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+.icon-btn:hover { background: rgba(255, 255, 255, 0.08); }
+.icon-btn svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
+.icon-btn svg .fill { fill: currentColor; stroke: none; }
+.icon-btn.toggle { color: var(--paper-dim); }
+.icon-btn.toggle[aria-pressed='true'] { color: var(--brass); }
+.icon-btn .one {
+  position: absolute;
+  top: 7px;
+  right: 6px;
+  display: none;
+  font-size: 9px;
+  font-weight: 600;
+  line-height: 1;
+}
+#repeatBtn[data-mode='one'] .one { display: block; }
+
+.play-btn {
+  display: grid;
+  place-items: center;
+  width: 58px;
+  height: 58px;
+  border: 0;
+  border-radius: 50%;
+  background: var(--paper);
+  color: var(--vinyl);
+  cursor: pointer;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.35);
+  transition: transform 0.15s var(--ease);
+}
+.play-btn:active { transform: scale(0.94); }
+.play-btn svg { width: 24px; height: 24px; fill: currentColor; }
+.play-btn .i-pause, .playing .play-btn .i-play { display: none; }
+.playing .play-btn .i-pause { display: block; }
+
+/* ---------------- 링크 추가 ---------------- */
+.add {
+  display: flex;
+  gap: 8px;
+  margin: 14px 22px 0;
+  padding: 5px 5px 5px 14px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08);
+  transition: box-shadow 0.15s;
+}
+.add:focus-within { box-shadow: inset 0 0 0 1px var(--brass); }
+.add input {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: var(--paper);
+  font: 13px var(--sans);
+  user-select: text;
+}
+.add input::placeholder { color: var(--paper-dim); }
+.add button {
+  border: 0;
+  border-radius: 999px;
+  padding: 6px 16px;
+  background: var(--brass);
+  color: #231b0d;
+  font-weight: 600;
+  font-size: 13px;
+  cursor: pointer;
+}
+.add button:hover { background: #e3c084; }
+.add-msg {
+  min-height: 18px;
+  margin: 6px 26px 0;
+  font-size: 12px;
+  color: var(--paper-dim);
+}
+.add-msg.error { color: #f0a7a0; }
+
+.drop-hint .add { box-shadow: inset 0 0 0 2px var(--brass); }
+
+/* ---------------- 재생목록 ---------------- */
+.list-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  padding: 6px 22px 6px;
+}
+.list-head h2 { margin: 0; font: 700 15px var(--serif); }
+#count { font-size: 12px; color: var(--paper-dim); }
+
+.queue {
+  flex: 1;
+  min-height: 0;
+  margin: 0;
+  padding: 0 10px 16px;
+  list-style: none;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--paper-faint) transparent;
+}
+.queue::-webkit-scrollbar { width: 6px; }
+.queue::-webkit-scrollbar-thumb { background: var(--paper-faint); border-radius: 3px; }
+
+.item {
+  display: grid;
+  grid-template-columns: 56px 1fr 28px;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 6px 6px 8px;
+  border-radius: 10px;
+  cursor: pointer;
+}
+.item:hover, .item:focus-visible { background: rgba(255, 255, 255, 0.07); outline: none; }
+.item .thumb {
+  position: relative;
+  width: 56px;
+  height: 32px;
+  border-radius: 5px;
+  overflow: hidden;
+  background: var(--groove);
+}
+.item .thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.item .text { min-width: 0; }
+.item .t, .item .a { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.item .t { font-size: 13px; }
+.item .a { font-size: 11.5px; color: var(--paper-dim); }
+.item .rm {
+  width: 28px;
+  height: 28px;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--paper-dim);
+  opacity: 0;
+  cursor: pointer;
+}
+.item:hover .rm, .item:focus-within .rm { opacity: 1; }
+.item .rm:hover { background: rgba(255, 255, 255, 0.1); color: var(--paper); }
+.item .rm svg { width: 14px; height: 14px; margin: auto; stroke: currentColor; stroke-width: 2; stroke-linecap: round; }
+
+.item.current { background: rgba(216, 178, 110, 0.14); }
+.item.current .t { color: var(--brass); font-weight: 500; }
+.item.current .thumb::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45) center / 16px no-repeat
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='%23d8b26e'%3E%3Crect x='2' y='6' width='2.4' height='6' rx='1'/%3E%3Crect x='6.8' y='3' width='2.4' height='9' rx='1'/%3E%3Crect x='11.6' y='7' width='2.4' height='5' rx='1'/%3E%3C/svg%3E");
+}
+.item.broken .t { color: var(--paper-dim); text-decoration: line-through; }
+.item.dragging { opacity: 0.4; }
+.item.drop-above { box-shadow: inset 0 2px 0 var(--brass); }
+.item.drop-below { box-shadow: inset 0 -2px 0 var(--brass); }
+
+.empty-list {
+  padding: 18px 12px;
+  color: var(--paper-dim);
+  font-size: 13px;
+  text-align: center;
+}
+
+/* ---------------- LP ---------------- */
+.lp {
+  --d: 200px;
+  position: absolute;
+  z-index: 5;
+  top: var(--lp-top, 6px);
+  right: -100px;
+  width: var(--d);
+  height: var(--d);
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: none;
+  cursor: pointer;
+  filter: drop-shadow(-6px 6px 10px rgba(0, 0, 0, 0.45));
+  transition:
+    top 0.55s var(--ease),
+    right 0.55s var(--ease),
+    width 0.55s var(--ease),
+    height 0.55s var(--ease),
+    filter 0.3s;
+  touch-action: none;
+}
+.expanded .lp {
+  --d: 248px;
+  top: 28px;
+  right: 76px;
+  cursor: default;
+  filter: drop-shadow(0 18px 28px rgba(0, 0, 0, 0.55));
+}
+.collapsed .lp:hover { filter: drop-shadow(-8px 6px 14px rgba(0, 0, 0, 0.55)) brightness(1.08); }
+.no-anim .lp, .no-anim .tonearm { transition: none !important; }
+
+.disc, .grooves, .sheen, .label, .hole { position: absolute; border-radius: 50%; }
+.disc {
+  inset: 0;
+  background: var(--vinyl);
+  animation: spin 1.8s linear infinite; /* 33⅓ rpm */
+  animation-play-state: paused;
+}
+.playing .disc { animation-play-state: running; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.grooves {
+  inset: 2%;
+  background:
+    repeating-radial-gradient(circle at 50% 50%,
+      rgba(255, 255, 255, 0.045) 0 0.6px,
+      transparent 0.6px 2.2px),
+    radial-gradient(circle at 50% 50%,
+      transparent 0 34%,
+      rgba(255, 255, 255, 0.06) 34.5% 35%,
+      transparent 35.5% 64%,
+      rgba(255, 255, 255, 0.05) 64.5% 65%,
+      transparent 65.5%);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.06);
+}
+.label {
+  inset: 32%;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 50% 50%, var(--brass) 0 48%, var(--brass-deep) 49% 100%);
+  box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.35);
+}
+.label img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0;
+  transition: opacity 0.4s;
+}
+.label img.show { opacity: 1; }
+.hole {
+  inset: 48.6%;
+  background: #0c0b0e;
+  box-shadow: 0 0 0 2px rgba(243, 239, 231, 0.55);
+}
+/* 반사광은 회전하지 않음 — 진짜 LP처럼 빛은 제자리에 */
+.sheen {
+  inset: 0;
+  pointer-events: none;
+  background: conic-gradient(from 20deg,
+    transparent 0deg 18deg,
+    rgba(255, 255, 255, 0.11) 34deg,
+    transparent 52deg 196deg,
+    rgba(255, 255, 255, 0.08) 214deg,
+    transparent 232deg 360deg);
+  -webkit-mask: radial-gradient(circle, transparent 0 33%, #000 33.5%);
+  mask: radial-gradient(circle, transparent 0 33%, #000 33.5%);
+}
+
+/* ---------------- 톤암 ---------------- */
+.tonearm {
+  position: absolute;
+  z-index: 6;
+  left: 270px;
+  top: 18px;
+  width: 90px;
+  height: 230px;
+  overflow: visible;
+  pointer-events: none;
+  opacity: 0;
+  transform-origin: 62px 22px;
+  transform: rotate(-24deg);
+  transition: transform 0.9s var(--ease), opacity 0.3s;
+  filter: drop-shadow(-3px 6px 5px rgba(0, 0, 0, 0.45));
+}
+.expanded .tonearm { opacity: 1; transition-delay: 0s, 0.35s; }
+.expanded.playing .tonearm { transform: rotate(0deg); }
+.tonearm .base { fill: #2b2a30; stroke: rgba(243, 239, 231, 0.18); }
+.tonearm .pivot { fill: var(--brass); }
+.tonearm .arm { fill: none; stroke: #c9c3b8; stroke-width: 4; stroke-linecap: round; }
+.tonearm .head { fill: #c9c3b8; }
+
+#resolver {
+  position: fixed;
+  left: -9999px;
+  top: 0;
+  width: 200px;
+  height: 200px;
+}
+
+/* 키보드 포커스 */
+:focus-visible { outline: 2px solid var(--brass); outline-offset: 2px; }
+.lp:focus-visible { outline-offset: 4px; }
+
+@media (prefers-reduced-motion: reduce) {
+  .disc { animation-duration: 6s; }
+  .lp, .panel, .tonearm { transition-duration: 0.01s !important; }
+}

@@ -1,0 +1,14 @@
+{
+  "version": "1.1.0",
+  "files": [
+    "package.json",
+    "main.js",
+    "preload.js",
+    "updater.js",
+    "renderer/index.html",
+    "renderer/style.css",
+    "renderer/app.js",
+    "assets/icon.png",
+    "assets/icon.ico"
+  ]
+}

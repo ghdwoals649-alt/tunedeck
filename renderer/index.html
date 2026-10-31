@@ -1,0 +1,117 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="referrer" content="strict-origin-when-cross-origin">
+  <title>TuneDeck</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@400;700&family=IBM+Plex+Sans+KR:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div id="app" class="collapsed">
+    <!-- 펼쳤을 때의 패널 -->
+    <main class="panel" aria-hidden="true">
+      <div class="backdrop" aria-hidden="true">
+        <img id="bgA" alt="">
+        <img id="bgB" alt="">
+      </div>
+      <div class="scrim" aria-hidden="true"></div>
+
+      <div class="topbar">
+        <label class="volume" title="볼륨">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9h4l5-4v14l-5-4H4z"/><path class="wave" d="M16 8.5a5 5 0 0 1 0 7M18.5 6a8.5 8.5 0 0 1 0 12"/></svg>
+          <input id="volume" type="range" min="0" max="100" value="80" aria-label="볼륨">
+        </label>
+        <button id="collapseBtn" class="icon-btn small" title="접기 (Esc)" aria-label="접기">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5l7 7-7 7"/></svg>
+        </button>
+        <button id="quitBtn" class="icon-btn small" title="TuneDeck 종료" aria-label="TuneDeck 종료">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v8"/><path d="M7.2 7.2a7 7 0 1 0 9.6 0"/></svg>
+        </button>
+      </div>
+
+      <div id="updateBar" class="update-bar" hidden>
+        <span id="updateText">새 버전이 준비됐어요</span>
+        <button id="updateBtn" type="button">지금 적용</button>
+      </div>
+
+      <div class="stage" aria-hidden="true"></div>
+
+      <section class="now">
+        <div class="video-wrap">
+          <div id="player"></div>
+          <p class="video-empty">링크를 추가하면 여기서 영상이 재생돼요</p>
+        </div>
+
+        <div class="meta">
+          <h1 id="title">아직 재생 중인 곡이 없어요</h1>
+          <p id="artist">아래 칸에 유튜브 링크를 붙여넣어 보세요</p>
+        </div>
+
+        <div class="progress">
+          <span id="cur">0:00</span>
+          <input id="seek" type="range" min="0" max="1000" value="0" step="1" aria-label="재생 위치">
+          <span id="dur">0:00</span>
+        </div>
+
+        <div class="controls">
+          <button id="shuffleBtn" class="icon-btn toggle" title="셔플" aria-label="셔플" aria-pressed="false">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h3c4 0 6 10 10 10h3M4 17h3c1.6 0 2.8-1.6 3.9-3.5M13.1 9.5C14.2 7.6 15.4 7 17 7h3M17 4l3 3-3 3M17 14l3 3-3 3"/></svg>
+          </button>
+          <button id="prevBtn" class="icon-btn" title="이전 곡" aria-label="이전 곡">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path class="fill" d="M18 6v12l-9-6z"/><path d="M6 6v12"/></svg>
+          </button>
+          <button id="playBtn" class="play-btn" title="재생 (Space)" aria-label="재생">
+            <svg class="i-play" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5.5v13l11-6.5z"/></svg>
+            <svg class="i-pause" viewBox="0 0 24 24" aria-hidden="true"><rect x="7" y="5.5" width="3.6" height="13" rx="1"/><rect x="13.4" y="5.5" width="3.6" height="13" rx="1"/></svg>
+          </button>
+          <button id="nextBtn" class="icon-btn" title="다음 곡" aria-label="다음 곡">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path class="fill" d="M6 6v12l9-6z"/><path d="M18 6v12"/></svg>
+          </button>
+          <button id="repeatBtn" class="icon-btn toggle" title="반복: 전체" aria-label="반복 모드">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 11V9a2 2 0 0 1 2-2h12l-3-3M20 13v2a2 2 0 0 1-2 2H6l3 3"/></svg>
+            <span class="one" aria-hidden="true">1</span>
+          </button>
+        </div>
+      </section>
+
+      <form id="addForm" class="add" autocomplete="off">
+        <input id="linkInput" type="text" placeholder="유튜브 링크 붙여넣기" aria-label="유튜브 링크">
+        <button type="submit">추가</button>
+      </form>
+      <p id="addMsg" class="add-msg" role="status" aria-live="polite"></p>
+
+      <div class="list-head">
+        <h2>재생목록</h2>
+        <span id="count"></span>
+      </div>
+      <ol id="queue" class="queue"></ol>
+    </main>
+
+    <!-- LP: 접혀 있을 땐 화면 가장자리에서 반쯤 보이고, 펼치면 패널 위로 나온다 -->
+    <button id="lp" class="lp" aria-label="펼치기">
+      <span class="disc">
+        <span class="grooves"></span>
+        <span class="label"><img id="labelImg" alt=""></span>
+        <span class="hole"></span>
+      </span>
+      <span class="sheen"></span>
+    </button>
+
+    <svg class="tonearm" viewBox="0 0 90 230" aria-hidden="true">
+      <circle class="base" cx="62" cy="22" r="15"/>
+      <circle class="pivot" cx="62" cy="22" r="6"/>
+      <path class="arm" d="M62 22 L58 150 Q56 178 30 196"/>
+      <rect class="head" x="14" y="190" width="22" height="13" rx="3" transform="rotate(-38 25 196)"/>
+    </svg>
+
+    <div id="resolver" aria-hidden="true"></div>
+  </div>
+
+  <script src="app.js"></script>
+  <script src="https://www.youtube.com/iframe_api" async></script>
+</body>
+</html>

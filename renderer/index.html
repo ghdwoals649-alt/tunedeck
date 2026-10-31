@@ -25,6 +25,10 @@
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9h4l5-4v14l-5-4H4z"/><path class="wave" d="M16 8.5a5 5 0 0 1 0 7M18.5 6a8.5 8.5 0 0 1 0 12"/></svg>
           <input id="volume" type="range" min="0" max="100" value="80" aria-label="볼륨">
         </label>
+        <label class="volume" title="투명도">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><circle class="ring" cx="12" cy="12" r="7.5"/><path d="M12 4.5a7.5 7.5 0 0 1 0 15z"/></svg>
+          <input id="opacity" type="range" min="30" max="100" value="100" aria-label="투명도">
+        </label>
         <span class="spacer"></span>
         <button id="collapseBtn" class="icon-btn small" title="접기 (Esc)" aria-label="접기">
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5l7 7-7 7"/></svg>
@@ -107,7 +111,7 @@
       </div>
     </main>
 
-    <!-- 카세트: 접혀 있을 땐 화면 가장자리에서 반쯤 보이고, 펼치면 데크에 꽂힌다 -->
+    <!-- 카세트: 접혀 있을 땐 작은 위젯, 펼치면 데크에 꽂힌다 -->
     <button id="tape" class="cassette" aria-label="펼치기">
       <span class="tape-body">
         <svg class="shell" viewBox="0 0 300 191" aria-hidden="true">
@@ -123,7 +127,7 @@
         </svg>
 
         <span class="label">
-          <span class="strip"><img id="labelImg" alt=""></span>
+          <span class="photo"><img id="labelImg" alt=""></span>
           <span class="side">A</span>
           <span id="labelTitle" class="ltitle">TuneDeck</span>
           <span id="labelArtist" class="lartist">mixtape</span>
@@ -157,6 +161,7 @@
             <rect x="143" y="160" width="14" height="14" rx="2"/>
           </g>
         </svg>
+        <canvas id="viz" class="viz" aria-hidden="true"></canvas>
       </span>
     </button>
 

@@ -13,7 +13,7 @@
     bgA: $('bgA'), bgB: $('bgB'),
     title: $('title'), artist: $('artist'), cur: $('cur'), dur: $('dur'), seek: $('seek'),
     play: $('playBtn'), prev: $('prevBtn'), next: $('nextBtn'),
-    shuffle: $('shuffleBtn'), repeat: $('repeatBtn'), volume: $('volume'),
+    shuffle: $('shuffleBtn'), repeat: $('repeatBtn'), volume: $('volume'), opacity: $('opacity'), viz: $('viz'),
     searchForm: $('searchForm'), searchInput: $('searchInput'), msg: $('msg'),
     tabQueue: $('tabQueue'), tabResults: $('tabResults'),
     queue: $('queue'), count: $('count'), resultsPane: $('resultsPane'), results: $('results'),
@@ -28,6 +28,7 @@
     shuffle: false,
     repeat: 'all',  // all | one | off
     volume: 80,
+    opacity: 100,
   };
   let player = null;
   let playerReady = false;
@@ -59,7 +60,7 @@
     saveTimer = setTimeout(() => {
       api?.saveState({
         items: state.items, index: state.index,
-        shuffle: state.shuffle, repeat: state.repeat, volume: state.volume,
+        shuffle: state.shuffle, repeat: state.repeat, volume: state.volume, opacity: state.opacity,
       });
     }, 250);
   }
@@ -812,6 +813,18 @@
     const pct = ((input.value - input.min) / (input.max - input.min)) * 100;
     input.style.setProperty('--pct', pct + '%');
   }
+  // 위젯 전체 투명도 (30~100%)
+  function applyOpacity() {
+    appEl.style.opacity = String(state.opacity / 100);
+    els.opacity.value = state.opacity;
+    paintRange(els.opacity);
+  }
+  els.opacity.addEventListener('input', () => {
+    state.opacity = Math.max(30, Math.min(100, +els.opacity.value));
+    applyOpacity();
+    save();
+  });
+
   els.volume.addEventListener('input', () => {
     state.volume = +els.volume.value;
     paintRange(els.volume);
@@ -848,6 +861,95 @@
     els.seek.value = d ? Math.round((t / d) * 1000) : 0;
     paintRange(els.seek);
   }, 400);
+
+
+  // ---------------- 음량 막대 (사운드클라우드 느낌) ----------------
+  // YouTube 플레이어 소리는 직접 읽을 수 없어서 PC 출력 소리(루프백)를 분석한다.
+  // 실패하면 재생 중일 때만 자연스럽게 움직이는 가짜 막대로 대신한다.
+  const BARS = 26;
+  const levels = new Float32Array(BARS);
+  let analyser = null;
+  let freq = null;
+  let vizTried = false;
+
+  async function startViz() {
+    if (analyser || vizTried) return;
+    vizTried = true;
+    try {
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getDisplayMedia) throw new Error('unsupported');
+      const stream = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: true });
+      stream.getVideoTracks().forEach((t) => t.stop()); // 화면은 쓰지 않음
+      if (!stream.getAudioTracks().length) throw new Error('no audio');
+      const ctx = new AudioContext();
+      const src = ctx.createMediaStreamSource(stream);
+      analyser = ctx.createAnalyser();
+      analyser.fftSize = 1024;
+      analyser.smoothingTimeConstant = 0.72;
+      src.connect(analyser); // 스피커로는 다시 내보내지 않음 (소리 두 번 나는 것 방지)
+      freq = new Uint8Array(analyser.frequencyBinCount);
+      if (ctx.state === 'suspended') document.addEventListener('pointerdown', () => ctx.resume(), { once: true });
+    } catch {
+      analyser = null; // 가짜 막대 사용
+    }
+  }
+
+  // 막대마다 담당할 주파수 구간 (낮은 음은 촘촘하게, 높은 음은 넓게)
+  const bandEdges = [];
+  for (let i = 0; i <= BARS; i++) bandEdges.push(Math.round(2 * Math.pow(220, i / BARS)));
+
+  let fakePhase = 0;
+  function sampleLevels() {
+    if (analyser && freq) {
+      analyser.getByteFrequencyData(freq);
+      for (let i = 0; i < BARS; i++) {
+        const a = bandEdges[i], b = Math.max(bandEdges[i + 1], a + 1);
+        let sum = 0;
+        for (let k = a; k < b && k < freq.length; k++) sum += freq[k];
+        const v = Math.pow(sum / (b - a) / 255, 1.4) * (1 + i / BARS * 0.8);
+        levels[i] += (Math.min(1, v) - levels[i]) * (v > levels[i] ? 0.6 : 0.18);
+      }
+      return;
+    }
+    fakePhase += 0.06;
+    for (let i = 0; i < BARS; i++) {
+      const target = isPlaying
+        ? 0.25 + 0.5 * Math.abs(Math.sin(fakePhase * (1 + i * 0.13) + i)) * (1 - i / BARS * 0.5) + Math.random() * 0.15
+        : 0;
+      levels[i] += (target - levels[i]) * 0.15;
+    }
+  }
+
+  const vctx = els.viz.getContext('2d');
+  function sizeViz() {
+    const r = els.viz.getBoundingClientRect();
+    const dpr = window.devicePixelRatio || 1;
+    els.viz.width = Math.max(1, Math.round(r.width * dpr));
+    els.viz.height = Math.max(1, Math.round(r.height * dpr));
+  }
+  new ResizeObserver(sizeViz).observe(els.viz);
+
+  function drawViz() {
+    sampleLevels();
+    const w = els.viz.width, h = els.viz.height;
+    vctx.clearRect(0, 0, w, h);
+    const gap = w / BARS;
+    const bw = Math.max(1, gap * 0.56);
+    const grad = vctx.createLinearGradient(0, h, 0, 0);
+    grad.addColorStop(0, '#d8b26e');
+    grad.addColorStop(1, '#f3efe7');
+    vctx.fillStyle = grad;
+    for (let i = 0; i < BARS; i++) {
+      const bh = Math.max(h * 0.06, levels[i] * h);
+      const x = i * gap + (gap - bw) / 2;
+      const y = h - bh;
+      const r = Math.min(bw / 2, bh / 2);
+      vctx.beginPath();
+      vctx.roundRect ? vctx.roundRect(x, y, bw, bh, [r, r, 0, 0]) : vctx.rect(x, y, bw, bh);
+      vctx.fill();
+    }
+    requestAnimationFrame(drawViz);
+  }
+  requestAnimationFrame(drawViz);
 
   // ---------------- 접기 / 펼치기 ----------------
   const wait = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -981,10 +1083,13 @@
       state.shuffle = !!saved.shuffle;
       state.repeat = ['all', 'one', 'off'].includes(saved.repeat) ? saved.repeat : 'all';
       state.volume = Number.isFinite(saved.volume) ? saved.volume : 80;
+      state.opacity = Number.isFinite(saved.opacity) ? Math.max(30, Math.min(100, saved.opacity)) : 100;
     }
     els.volume.value = state.volume;
     paintRange(els.volume);
+    applyOpacity();
     paintRange(els.seek);
+    startViz();
     renderModes();
     renderNow();
     renderQueue();
@@ -995,6 +1100,6 @@
   // 미리보기/테스트용
   window.__tunedeck = {
     state, expand, collapse, renderNow, renderQueue, setPlaying, parseLink, playAt, setSpools,
-    setResults: (r) => { results = r; renderResults(); }, showTab,
+    setResults: (r) => { results = r; renderResults(); }, showTab, levels,
   };
 })();

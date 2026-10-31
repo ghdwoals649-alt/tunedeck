@@ -1,7 +1,7 @@
 // TuneDeck — 화면 가장자리에 붙는 LP 위젯형 YouTube 플레이어
 const {
   app, BrowserWindow, Tray, Menu, nativeImage, globalShortcut,
-  ipcMain, screen, net, shell,
+  ipcMain, screen, net, shell, session, desktopCapturer,
 } = require('electron');
 const path = require('path');
 const fs = require('fs');
@@ -440,6 +440,19 @@ app.whenReady().then(async () => {
   app.setAppUserModelId('com.tunedeck.app');
   Menu.setApplicationMenu(null);
   await startServer();
+
+  // 음량 막대용: PC에서 나오는 소리(루프백)만 앱 화면에 넘겨줌. 녹음·전송하지 않음.
+  // TuneDeck 자체 화면에서 요청할 때만 허용하고, YouTube 플레이어 등 다른 곳의 요청은 거절.
+  session.defaultSession.setDisplayMediaRequestHandler((request, callback) => {
+    const origin = String(request.securityOrigin || request.frame?.url || '');
+    if (!origin.startsWith(appOrigin())) return callback({});
+    desktopCapturer.getSources({ types: ['screen'] })
+      .then((sources) => {
+        if (!sources.length) return callback({});
+        callback({ video: sources[0], audio: 'loopback' });
+      })
+      .catch(() => callback({}));
+  });
   createWindow();
   createTray();
 

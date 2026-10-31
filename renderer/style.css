@@ -986,7 +986,7 @@ input[type='range']:focus-visible::-webkit-slider-thumb { transform: scale(1); }
 /* ---------------- 숨은 테마별 앱 배경 ---------------- */
 .skin-washer .backdrop img, .skin-tire .backdrop img, .skin-magic .backdrop img { display: none; }
 
-/* 세탁기: 하얀 세탁실 + 비눗방울, 글자는 어둡게 */
+/* 세탁기: 하얀 세탁실, 글자는 어둡게 */
 .skin-washer .panel {
   --paper: #1f2630;
   --paper-dim: rgba(31, 38, 48, 0.6);
@@ -997,15 +997,7 @@ input[type='range']:focus-visible::-webkit-slider-thumb { transform: scale(1); }
   box-shadow: inset 0 0 0 1px rgba(31, 38, 48, 0.08);
 }
 .skin-washer .backdrop {
-  background:
-    radial-gradient(circle at 14% 22%, rgba(255, 255, 255, 0.95) 0 9px, rgba(150, 196, 240, 0.55) 10px, transparent 11.5px),
-    radial-gradient(circle at 82% 14%, rgba(255, 255, 255, 0.95) 0 5px, rgba(150, 196, 240, 0.55) 6px, transparent 7.5px),
-    radial-gradient(circle at 74% 42%, rgba(255, 255, 255, 0.95) 0 14px, rgba(150, 196, 240, 0.45) 15px, transparent 17px),
-    radial-gradient(circle at 20% 58%, rgba(255, 255, 255, 0.95) 0 6px, rgba(150, 196, 240, 0.55) 7px, transparent 8.5px),
-    radial-gradient(circle at 88% 70%, rgba(255, 255, 255, 0.95) 0 8px, rgba(150, 196, 240, 0.5) 9px, transparent 10.5px),
-    radial-gradient(circle at 34% 86%, rgba(255, 255, 255, 0.95) 0 11px, rgba(150, 196, 240, 0.45) 12px, transparent 13.5px),
-    radial-gradient(circle at 62% 94%, rgba(255, 255, 255, 0.95) 0 4px, rgba(150, 196, 240, 0.55) 5px, transparent 6.5px),
-    linear-gradient(to bottom, #fbfcfe 0%, #eef3f9 55%, #dde8f4 100%);
+  background: linear-gradient(to bottom, #fbfcfe 0%, #eef3f9 55%, #dde8f4 100%);
 }
 .skin-washer .scrim { display: none; }
 .skin-washer .play-btn { background: #1f2630; color: #ffffff; }

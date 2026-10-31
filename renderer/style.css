@@ -51,7 +51,7 @@ svg { display: block; }
   transition: opacity 0.32s ease, transform 0.5s var(--ease);
 }
 .expanded .panel {
-  opacity: 1;
+  opacity: var(--fade, 1);
   transform: none;
   pointer-events: auto;
   transition-delay: 0.05s;
@@ -492,6 +492,7 @@ input[type='range']:focus-visible::-webkit-slider-thumb { transform: scale(1); }
 /* ---------------- 카세트 ---------------- */
 .cassette {
   --w: 154px;
+  opacity: var(--fade, 1); /* 투명도 슬라이더: 카세트 전체 */
   position: absolute;
   z-index: 5;
   left: var(--start-left, 12px);

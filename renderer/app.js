@@ -818,8 +818,8 @@
   }
   // 위젯 전체 투명도 (30~100%)
   function applyOpacity() {
-    // 창이나 요소 전체를 흐리게 하지 않고, 배경·몸체 색의 투명도만 바꿈 (글자는 선명하게 유지)
-    document.documentElement.style.setProperty('--alpha', (state.opacity / 100).toFixed(2));
+    // 위젯 전체(패널·카세트·글자)를 흐리게 함. 창 자체의 투명도 기능(setOpacity)은 쓰지 않음.
+    document.documentElement.style.setProperty('--fade', (state.opacity / 100).toFixed(2));
     api?.repaint?.();
     els.opacity.value = state.opacity;
     paintRange(els.opacity);

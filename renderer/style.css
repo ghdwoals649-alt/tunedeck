@@ -516,8 +516,12 @@ input[type='range']:focus-visible::-webkit-slider-thumb { transform: scale(1); }
 .no-anim .cassette { transition: none !important; }
 
 .tape-body {
+  /* top 값으로만 움직임 (opacity/transform 애니메이션은 Windows 투명 창에서 사라지는 문제가 있음) */
   position: absolute;
-  inset: 0;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
   display: block;
   border-radius: 4% / 6.3%;
   box-shadow: 0 5px 12px rgba(0, 0, 0, 0.5);

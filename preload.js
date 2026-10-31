@@ -16,6 +16,8 @@ contextBridge.exposeInMainWorld('api', {
   onMedia: (cb) => ipcRenderer.on('media', (_e, action) => cb(action)),
   onToggle: (cb) => ipcRenderer.on('toggle', () => cb()),
   quit: () => ipcRenderer.send('app:quit'),
+  setOpacity: (v) => ipcRenderer.send('win:opacity', v),
+  repaint: () => ipcRenderer.send('win:repaint'),
   hasKey: () => ipcRenderer.invoke('yt:hasKey'),
   setKey: (key) => ipcRenderer.invoke('yt:setKey', key),
   search: (q) => ipcRenderer.invoke('yt:search', q),

@@ -440,49 +440,52 @@
       new Promise((r) => setTimeout(r, (opts.duration || 0) + 200)),
     ]);
   };
-  // 카세트를 확실히 보이는 원래 상태로 되돌림
+  // 카세트를 확실히 보이는 원래 상태로 되돌림 + 화면 다시 그리기
   function resetTape() {
     els.tapeBody.getAnimations().forEach((a) => a.cancel());
-    els.tapeBody.style.transform = 'none';
-    els.tapeBody.style.opacity = '1';
+    els.tapeBody.style.top = '0px';
+    els.tapeBody.style.visibility = 'visible';
+    els.tape.style.display = 'none';
+    void els.tape.offsetHeight; // 강제로 다시 배치
+    els.tape.style.display = '';
+    api?.repaint();
   }
   let swapping = false;
   let swapAgain = false;
   let labelApplied = false;
 
+  // 위/아래로만 움직임(top). 투명도·회전은 쓰지 않음.
   async function animOut() {
     if (expanded) {
       await run(els.tapeBody, [
-        { transform: 'translateY(0) rotate(0deg)', opacity: 1 },
-        { transform: 'translateY(-14%) rotate(-1deg)', opacity: 1, offset: 0.3 },
-        { transform: 'translateY(-150%) rotate(-5deg)', opacity: 0 },
+        { top: '0%' },
+        { top: '-14%', offset: 0.3 },
+        { top: '-175%' },
       ], { duration: 420, easing: 'cubic-bezier(.5,0,.75,0)' });
     } else {
-      await run(els.tapeBody, [
-        { transform: 'translateY(0) scale(1)', opacity: 1 },
-        { transform: 'translateY(-30%) scale(.9)', opacity: 0 },
-      ], { duration: 300, easing: 'ease-in' });
+      await run(els.tapeBody, [{ top: '0%' }, { top: '-140%' }], { duration: 300, easing: 'ease-in' });
     }
+    els.tapeBody.style.visibility = 'hidden';
   }
 
   async function animIn() {
+    els.tapeBody.style.visibility = 'visible';
     if (expanded) {
       await run(els.tapeBody, [
-        { transform: 'translateY(-150%) rotate(4deg)', opacity: 0 },
-        { transform: 'translateY(-45%) rotate(1.5deg)', opacity: 1, offset: 0.42 },
-        { transform: 'translateY(3%) rotate(0deg)', opacity: 1, offset: 0.78 },
-        { transform: 'translateY(-1.2%)', opacity: 1, offset: 0.9 },
-        { transform: 'translateY(0)', opacity: 1 },
+        { top: '-175%' },
+        { top: '-45%', offset: 0.42 },
+        { top: '3%', offset: 0.78 },
+        { top: '-1.2%', offset: 0.9 },
+        { top: '0%' },
       ], { duration: 640, easing: 'cubic-bezier(.3,.7,.4,1)' });
       // 딸깍 — 데크가 살짝 눌림
-      els.deck.animate([
-        { transform: 'translateY(0)' }, { transform: 'translateY(2px)' }, { transform: 'translateY(0)' },
-      ], { duration: 180, easing: 'ease-out' });
+      run(els.deck, [{ top: '4px' }, { top: '6px' }, { top: '4px' }], { duration: 180, easing: 'ease-out' })
+        .then(() => els.deck.getAnimations().forEach((a) => a.cancel()));
     } else {
       await run(els.tapeBody, [
-        { transform: 'translateY(-30%) scale(.9)', opacity: 0 },
-        { transform: 'translateY(4%) scale(1)', opacity: 1, offset: 0.75 },
-        { transform: 'translateY(0) scale(1)', opacity: 1 },
+        { top: '-140%' },
+        { top: '5%', offset: 0.75 },
+        { top: '0%' },
       ], { duration: 420, easing: 'cubic-bezier(.3,.7,.4,1)' });
     }
     resetTape();
@@ -815,7 +818,8 @@
   }
   // 위젯 전체 투명도 (30~100%)
   function applyOpacity() {
-    appEl.style.opacity = String(state.opacity / 100);
+    if (api?.setOpacity) api.setOpacity(state.opacity / 100);
+    else appEl.style.opacity = String(state.opacity / 100); // 미리보기용
     els.opacity.value = state.opacity;
     paintRange(els.opacity);
   }
@@ -848,7 +852,10 @@
   });
   setInterval(() => {
     // 안전장치: 교체 중이 아닌데 카세트가 안 보이면 원래대로 되돌림
-    if (!swapping && parseFloat(getComputedStyle(els.tapeBody).opacity) < 0.5) resetTape();
+    if (!swapping && !busy) {
+      const cs = getComputedStyle(els.tapeBody);
+      if (cs.visibility !== 'visible' || Math.abs(parseFloat(cs.top) || 0) > 1) resetTape();
+    }
     if (!playerReady || !current()) return;
     const d = player.getDuration() || 0;
     const t = player.getCurrentTime() || 0;
@@ -976,6 +983,7 @@
     els.tape.setAttribute('aria-label', '데크에 꽂힌 카세트');
     renderQueue();
     await wait(560);
+    api?.repaint();
     busy = false;
   }
 
@@ -996,6 +1004,7 @@
     await frame();
     appEl.classList.remove('no-anim');
     renderNow();
+    resetTape();
     busy = false;
   }
 

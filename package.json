@@ -1,7 +1,7 @@
 {
   "name": "tunedeck",
   "productName": "TuneDeck",
-  "version": "1.4.0",
+  "version": "1.4.1",
   "description": "LP widget YouTube player for Windows",
   "main": "bootstrap.js",
   "author": "TuneDeck",

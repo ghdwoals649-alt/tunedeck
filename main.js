@@ -109,6 +109,9 @@ function applyBounds(b) {
   win.setResizable(true);
   win.setBounds(b);
   win.setResizable(false);
+  // 크기가 바뀐 뒤 투명 창이 빈 화면으로 남지 않도록 두 번 다시 그림
+  setTimeout(() => { try { win.webContents.invalidate(); } catch {} }, 16);
+  setTimeout(() => { try { win.webContents.invalidate(); } catch {} }, 120);
 }
 
 // IP 주소(127.0.0.1)보다 localhost 출처가 YouTube 플레이어에서 더 잘 받아들여짐
@@ -282,6 +285,15 @@ ipcMain.on('dock:end', () => {
 });
 
 ipcMain.on('app:quit', () => { isQuitting = true; app.quit(); });
+
+// 위젯 투명도는 CSS가 아니라 창 자체에 적용 (Windows 투명 창에서 CSS 투명도는 화면이 안 그려지는 문제가 있음)
+ipcMain.on('win:opacity', (_e, v) => {
+  const o = Math.max(0.3, Math.min(1, Number(v) || 1));
+  win?.setOpacity(o);
+});
+// 화면 전체를 강제로 다시 그림 (애니메이션·창 크기 변경 뒤 잔상/사라짐 방지)
+const repaint = () => { try { win?.webContents.invalidate(); } catch {} };
+ipcMain.on('win:repaint', repaint);
 ipcMain.on('app:applyUpdate', () => {
   isQuitting = true;
   app.relaunch();

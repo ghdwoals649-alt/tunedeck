@@ -107,6 +107,24 @@ def write_icons(res):
         '</adaptive-icon>\n', encoding='utf-8')
 
 
+def check_apk(path):
+    """안드로이드 11 이상에서 설치되려면 resources.arsc 가 '압축 안 함 + 4바이트 정렬' 이어야 함"""
+    import struct
+    import zipfile
+    with zipfile.ZipFile(path) as z:
+        info = z.getinfo('resources.arsc')
+        if info.compress_type != zipfile.ZIP_STORED:
+            sys.exit('resources.arsc 가 압축돼 있음 → 폰에서 설치 실패함')
+        with open(path, 'rb') as f:
+            f.seek(info.header_offset)
+            hdr = f.read(30)
+            name_len, extra_len = struct.unpack('<HH', hdr[26:30])
+            data_offset = info.header_offset + 30 + name_len + extra_len
+        if data_offset % 4:
+            sys.exit(f'resources.arsc 정렬 안 됨 (offset {data_offset})')
+    print(f'확인: resources.arsc 압축 안 함, 4바이트 정렬 (offset {data_offset})')
+
+
 def main():
     if not (APKTOOL and SIGNER):
         sys.exit('APKTOOL_JAR, SIGNER_JAR 환경 변수를 지정하세요.')
@@ -130,7 +148,7 @@ def main():
         f'sdkInfo:\n  minSdkVersion: 24\n  targetSdkVersion: 34\n'
         f'packageInfo:\n  forcedPackageId: 127\n'
         f'versionInfo:\n  versionCode: {code}\n  versionName: {version}\n'
-        f'doNotCompress:\n- png\n', encoding='utf-8')
+        f'doNotCompress:\n- png\n- arsc\n- resources.arsc\n', encoding='utf-8')
 
     unsigned = STAGE / 'TuneDeck-unsigned.apk'
     run(['java', '-jar', APKTOOL, 'b', STAGE, '-o', unsigned])
@@ -146,6 +164,7 @@ def main():
          '--ks', KEYSTORE, '--ksAlias', 'tunedeck', '--ksPass', KS_PASS, '--ksKeyPass', KS_PASS,
          '--allowResign'])
     out = next(signed_dir.glob('*.apk'))
+    check_apk(out)
     apk = DOCS / 'youtape.apk'
     shutil.copy2(out, apk)
     print('완료:', apk, f'({apk.stat().st_size:,} bytes, v{version}, code {code})')

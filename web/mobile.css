@@ -16,6 +16,7 @@ html, body {
   width: 280px;
   height: 100vh;
   transform-origin: 0 0;
+  overflow: clip;
 }
 
 .panel { border-radius: 0; box-shadow: none; }

@@ -46,6 +46,7 @@ svg { display: block; }
   flex-direction: column;
   border-radius: 20px;
   overflow: hidden;
+  overflow: clip; /* 스크롤 안 되는 잘라내기 — 키보드가 열려도 화면이 밀려 올라가지 않음 */
   background: rgba(var(--scrim), var(--alpha));
   box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08);
   opacity: 0;

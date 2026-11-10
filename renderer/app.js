@@ -673,7 +673,13 @@
       q.appendChild(li);
     });
     const cur = q.querySelector('.current');
-    if (cur && expanded && !q.hidden) cur.scrollIntoView({ block: 'nearest' });
+    // 목록 안에서만 스크롤 (scrollIntoView 는 바깥 화면까지 밀어 올려서 화면이 어긋남)
+    if (cur && expanded && !q.hidden) {
+      const top = cur.offsetTop;
+      const bottom = top + cur.offsetHeight;
+      if (top < q.scrollTop) q.scrollTop = top;
+      else if (bottom > q.scrollTop + q.clientHeight) q.scrollTop = bottom - q.clientHeight;
+    }
   }
 
   function renderResults() {
@@ -998,6 +1004,13 @@
     requestAnimationFrame(drawViz);
   }
   requestAnimationFrame(drawViz);
+
+  // 화면 틀(패널)은 절대 스크롤되면 안 됨 — 키보드·포커스 때문에 밀려 올라가면 바로 되돌림
+  [els.panel, appEl, document.scrollingElement].forEach((el) => {
+    if (!el) return;
+    el.addEventListener('scroll', () => { if (el.scrollTop || el.scrollLeft) { el.scrollTop = 0; el.scrollLeft = 0; } });
+  });
+  window.addEventListener('scroll', () => { if (window.scrollY || window.scrollX) window.scrollTo(0, 0); });
 
   // ---------------- 테마 선택 ----------------
   const skinBtn = $('skinBtn');

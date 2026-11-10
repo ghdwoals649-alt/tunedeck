@@ -5,9 +5,14 @@
 
   // 데스크톱 펼친 화면(가로 280)을 폰 가로 폭에 꽉 차게 키움
   const BASE_W = 280;
+  let lastW = 0;
+  let maxH = 0;
   function fit() {
     const vw = window.innerWidth;
-    const vh = window.innerHeight;
+    // 키보드가 열려 화면이 잠깐 줄어도 높이는 줄이지 않음 (가로 폭이 바뀔 때만 다시 계산)
+    if (vw !== lastW) { lastW = vw; maxH = 0; }
+    maxH = Math.max(maxH, window.innerHeight);
+    const vh = maxH;
     const s = Math.min(vw / BASE_W, 1.8); // 태블릿에서는 너무 커지지 않게
     appEl.style.width = BASE_W + 'px';
     appEl.style.height = vh / s + 'px';

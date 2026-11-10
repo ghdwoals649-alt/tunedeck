@@ -928,6 +928,8 @@
     try {
       // 맥에서는 화면 녹화 권한 창이 뜨므로 시도하지 않고 장식용 막대를 씀
       if (/Mac/i.test(navigator.platform || '')) throw new Error('mac');
+      // 폰(웹·APK)에서는 화면 공유 창이 뜨면 터치가 막히므로 시도하지 않음
+      if (window.TUNEDECK_NO_CAPTURE) throw new Error('no capture');
       if (!navigator.mediaDevices || !navigator.mediaDevices.getDisplayMedia) throw new Error('unsupported');
       const stream = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: true });
       stream.getVideoTracks().forEach((t) => t.stop()); // 화면은 쓰지 않음

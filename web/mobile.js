@@ -44,8 +44,8 @@
   new MutationObserver(keepAwake).observe(appEl, { attributes: true, attributeFilter: ['class'] });
   document.addEventListener('visibilitychange', keepAwake);
 
-  // 홈 화면 설치(앱처럼 실행)용
-  if ('serviceWorker' in navigator) {
+  // 홈 화면 설치(앱처럼 실행)용 — APK 앱 안에서는 쓰지 않음 (앱이 화면 파일을 직접 갖고 있음)
+  if ('serviceWorker' in navigator && !/TuneDeckApp/.test(navigator.userAgent)) {
     window.addEventListener('load', () => {
       navigator.serviceWorker.register('sw.js').catch(() => {});
     });

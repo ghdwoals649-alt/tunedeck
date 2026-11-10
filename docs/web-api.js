@@ -102,6 +102,9 @@
     return null; // 재생하면 플레이어가 아는 제목으로 채워짐
   }
 
+  // 음량 막대용 '소리 캡처'(화면 공유 창)를 쓰지 않음 → 재생 중 움직이는 장식 막대
+  window.TUNEDECK_NO_CAPTURE = true;
+
   const noop = () => {};
   window.api = {
     loadState: async () => LS.get('library', null),

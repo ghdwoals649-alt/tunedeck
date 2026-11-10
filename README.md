@@ -12,6 +12,16 @@
 - 노래·가수로 검색하거나 유튜브 링크를 붙여넣어 추가해요.
 - 새 버전은 GitHub에서 자동으로 받아와요.
 
+## 갤럭시(안드로이드) 폰에서 쓰기
+
+**설치 파일(APK):** 폰에서 https://github.com/ghdwoals649-alt/tunedeck/raw/main/docs/TuneDeck.apk 를 열어 받은 뒤 설치하세요.
+처음 설치할 때 '출처를 알 수 없는 앱' 설치를 허용해야 해요.
+
+- 재생목록·테마·API 키는 그 폰에만 저장돼요.
+- 화면이 꺼지거나 다른 앱으로 가면 YouTube 정책상 재생이 멈출 수 있어요. 앱을 보고 있는 동안에는 화면이 꺼지지 않아요.
+- 웹앱으로도 쓸 수 있어요: 저장소 Settings → Pages 에서 main /docs 를 켜면 https://ghdwoals649-alt.github.io/tunedeck/
+- 다시 만들기: `python3 build-web.py` (웹앱), `APKTOOL_JAR=… SIGNER_JAR=… python3 build-apk.py` (APK)
+
 ## 친구용 링크 전용판 (API 키 필요 없음)
 
 검색 기능을 뺀 버전이에요. 유튜브 링크를 붙여넣어서만 곡을 추가해요.

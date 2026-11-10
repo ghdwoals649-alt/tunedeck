@@ -403,6 +403,17 @@
             errorStreak = 0;
             const it = current();
             if (it && it.broken) { delete it.broken; renderQueue(); save(); }
+            // 제목을 못 가져온 곡이면 플레이어가 아는 제목·채널로 채움
+            if (it && (it.title === 'YouTube 영상' || it.title === '불러오는 중…')) {
+              try {
+                const d = player.getVideoData();
+                if (d && d.video_id === it.id && d.title) {
+                  it.title = d.title;
+                  if (d.author) it.author = d.author;
+                  renderNow(); renderQueue(); save();
+                }
+              } catch {}
+            }
           } else if (e.data === S.PAUSED || e.data === S.CUED || e.data === S.UNSTARTED) {
             setPlaying(false);
           } else if (e.data === S.ENDED) {

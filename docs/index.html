@@ -1,0 +1,315 @@
+<!doctype html>
+<html lang="ko" class="mobile">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="referrer" content="strict-origin-when-cross-origin">
+  <meta name="color-scheme" content="dark">
+  <meta name="theme-color" content="#120f14">
+  <meta name="mobile-web-app-capable" content="yes">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icon-192.png">
+  <link rel="apple-touch-icon" href="icon-192.png">
+  <title>TuneDeck</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@400;700&family=IBM+Plex+Sans+KR:wght@400;500;600&family=Nanum+Pen+Script&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="mobile.css">
+</head>
+<body>
+  <div id="app" class="collapsed skin-cassette">
+    <!-- 펼쳤을 때의 패널 -->
+    <main class="panel" aria-hidden="true">
+      <div class="backdrop" aria-hidden="true">
+        <img id="bgA" alt="">
+        <img id="bgB" alt="">
+      </div>
+      <div class="scrim" aria-hidden="true"></div>
+
+      <div class="topbar">
+        <label class="volume" title="볼륨">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9h4l5-4v14l-5-4H4z"/><path class="wave" d="M16 8.5a5 5 0 0 1 0 7M18.5 6a8.5 8.5 0 0 1 0 12"/></svg>
+          <input id="volume" type="range" min="0" max="100" value="80" aria-label="볼륨">
+        </label>
+        <label class="volume" title="투명도">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><circle class="ring" cx="12" cy="12" r="7.5"/><path d="M12 4.5a7.5 7.5 0 0 1 0 15z"/></svg>
+          <input id="opacity" type="range" min="30" max="100" value="100" aria-label="투명도">
+        </label>
+        <span class="spacer"></span>
+        <button id="skinBtn" class="icon-btn small" title="테마 바꾸기" aria-label="테마 바꾸기" aria-haspopup="true" aria-expanded="false">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M12 2.8v2.4M12 18.8v2.4M2.8 12h2.4M18.8 12h2.4M5.5 5.5l1.7 1.7M16.8 16.8l1.7 1.7M5.5 18.5l1.7-1.7M16.8 7.2l1.7-1.7"/></svg>
+        </button>
+        <button id="collapseBtn" class="icon-btn small" title="접기 (Esc)" aria-label="접기">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5l7 7-7 7"/></svg>
+        </button>
+        <button id="quitBtn" class="icon-btn small" title="TuneDeck 종료" aria-label="TuneDeck 종료">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v8"/><path d="M7.2 7.2a7 7 0 1 0 9.6 0"/></svg>
+        </button>
+      </div>
+
+      <div id="skinMenu" class="skin-menu" role="radiogroup" aria-label="테마" hidden>
+        <p class="skin-title" id="skinTitle">테마</p>
+        <div class="skin-options">
+          <button type="button" class="skin-opt" role="radio" data-skin="cassette" aria-checked="true">
+            <svg viewBox="0 0 40 26" aria-hidden="true"><rect x="1" y="1" width="38" height="24" rx="3"/><rect x="11" y="8" width="18" height="7" rx="2"/><circle cx="15" cy="11.5" r="1.8"/><circle cx="25" cy="11.5" r="1.8"/></svg>
+            <span>카세트</span>
+          </button>
+          <button type="button" class="skin-opt" role="radio" data-skin="lp" aria-checked="false">
+            <svg viewBox="0 0 40 26" aria-hidden="true"><circle cx="20" cy="13" r="12"/><circle cx="20" cy="13" r="8.5" class="thin"/><circle cx="20" cy="13" r="4"/></svg>
+            <span>LP</span>
+          </button>
+          <button type="button" class="skin-opt" role="radio" data-skin="cd" aria-checked="false">
+            <svg viewBox="0 0 40 26" aria-hidden="true"><circle cx="20" cy="13" r="12"/><circle cx="20" cy="13" r="4.5"/><circle cx="20" cy="13" r="1.5"/><path class="thin" d="M12 6.5a10 10 0 0 1 6-2.2"/></svg>
+            <span>CD</span>
+          </button>
+          <button type="button" class="skin-opt secret" role="radio" data-skin="washer" aria-checked="false">
+            <svg viewBox="0 0 40 26" aria-hidden="true"><rect x="9" y="1" width="22" height="24" rx="3"/><path class="thin" d="M9 6.5h22"/><circle cx="20" cy="15.5" r="6.5"/><circle cx="20" cy="15.5" r="3.5" class="thin"/></svg>
+            <span>세탁기</span>
+          </button>
+          <button type="button" class="skin-opt secret" role="radio" data-skin="tire" aria-checked="false">
+            <svg viewBox="0 0 40 26" aria-hidden="true"><circle cx="20" cy="13" r="12"/><circle cx="20" cy="13" r="7"/><circle cx="20" cy="13" r="2"/><path class="thin" d="M20 1v3M20 22v3M8 13h3M29 13h3M11.5 4.5l2 2M26.5 19.5l2 2M11.5 21.5l2-2M26.5 6.5l2-2"/></svg>
+            <span>타이어</span>
+          </button>
+          <button type="button" class="skin-opt secret" role="radio" data-skin="magic" aria-checked="false">
+            <svg viewBox="0 0 40 26" aria-hidden="true"><circle cx="20" cy="13" r="12"/><circle cx="20" cy="13" r="9.5" class="thin"/><path class="thin" d="M20 3.5l8.2 14.2H11.8zM20 22.5l-8.2-14.2h16.4z"/></svg>
+            <span>마법진</span>
+          </button>
+        </div>
+      </div>
+
+      <div id="updateBar" class="update-bar" hidden>
+        <span id="updateText">새 버전이 준비됐어요</span>
+        <button id="updateBtn" type="button">지금 적용</button>
+      </div>
+
+      <!-- 카세트 데크 (카세트 자체는 패널 밖에 있어서 접힌 상태에서도 보인다) -->
+      <div class="stage" aria-hidden="true">
+        <div class="deck">
+          <span class="deck-led"></span>
+        </div>
+      </div>
+
+      <section class="now">
+        <div class="meta">
+          <h1 id="title">아직 재생 중인 곡이 없어요</h1>
+          <p id="artist">아래에서 듣고 싶은 곡을 검색해 보세요</p>
+        </div>
+
+        <div class="progress">
+          <span id="cur">0:00</span>
+          <input id="seek" type="range" min="0" max="1000" value="0" step="1" aria-label="재생 위치">
+          <span id="dur">0:00</span>
+        </div>
+
+        <div class="controls">
+          <button id="shuffleBtn" class="icon-btn toggle" title="셔플" aria-label="셔플" aria-pressed="false">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h3c4 0 6 10 10 10h3M4 17h3c1.6 0 2.8-1.6 3.9-3.5M13.1 9.5C14.2 7.6 15.4 7 17 7h3M17 4l3 3-3 3M17 14l3 3-3 3"/></svg>
+          </button>
+          <button id="prevBtn" class="icon-btn" title="이전 곡" aria-label="이전 곡">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path class="fill" d="M18 6v12l-9-6z"/><path d="M6 6v12"/></svg>
+          </button>
+          <button id="playBtn" class="play-btn" title="재생 (Space)" aria-label="재생">
+            <svg class="i-play" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5.5v13l11-6.5z"/></svg>
+            <svg class="i-pause" viewBox="0 0 24 24" aria-hidden="true"><rect x="7" y="5.5" width="3.6" height="13" rx="1"/><rect x="13.4" y="5.5" width="3.6" height="13" rx="1"/></svg>
+          </button>
+          <button id="nextBtn" class="icon-btn" title="다음 곡" aria-label="다음 곡">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path class="fill" d="M6 6v12l9-6z"/><path d="M18 6v12"/></svg>
+          </button>
+          <button id="repeatBtn" class="icon-btn toggle" title="반복: 전체" aria-label="반복 모드">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 11V9a2 2 0 0 1 2-2h12l-3-3M20 13v2a2 2 0 0 1-2 2H6l3 3"/></svg>
+            <span class="one" aria-hidden="true">1</span>
+          </button>
+        </div>
+      </section>
+
+      <form id="searchForm" class="search" autocomplete="off" role="search">
+        <svg class="search-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="M16 16l4 4"/></svg>
+        <input id="searchInput" type="text" placeholder="노래·가수 검색 또는 링크" aria-label="노래 검색 또는 유튜브 링크">
+        <button type="submit">검색</button>
+      </form>
+      <p id="msg" class="msg" role="status" aria-live="polite"></p>
+
+      <div class="list-head" role="tablist" aria-label="목록">
+        <button id="tabQueue" class="tab" role="tab" aria-selected="true">재생목록 <span id="count"></span></button>
+        <button id="tabResults" class="tab" role="tab" aria-selected="false">검색 결과</button>
+      </div>
+
+      <ol id="queue" class="list" role="tabpanel" aria-labelledby="tabQueue"></ol>
+
+      <div id="resultsPane" class="list" role="tabpanel" aria-labelledby="tabResults" hidden>
+        <div id="keyCard" class="key-card" hidden>
+          <p class="key-title">검색하려면 YouTube API 키가 한 번 필요해요</p>
+          <p class="key-help">Google Cloud에서 무료로 받을 수 있어요. 하루 약 100번 검색할 수 있어요.</p>
+          <form id="keyForm" class="key-form" autocomplete="off">
+            <input id="keyInput" type="password" placeholder="AIza로 시작하는 키 붙여넣기" aria-label="YouTube API 키">
+            <button type="submit">저장</button>
+          </form>
+          <button id="keyHelpBtn" type="button" class="link-btn">Google Cloud 콘솔 열기</button>
+        </div>
+        <ol id="results"></ol>
+      </div>
+    </main>
+
+    <!-- 카세트: 접혀 있을 땐 작은 위젯, 펼치면 데크에 꽂힌다 -->
+    <button id="tape" class="cassette" aria-label="펼치기">
+      <span class="tape-body">
+        <svg class="shell" viewBox="0 0 300 191" aria-hidden="true">
+          <defs>
+            <linearGradient id="shellGrad" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0" stop-color="#3a3540"/>
+              <stop offset="1" stop-color="#211e26"/>
+            </linearGradient>
+          </defs>
+          <rect class="body" x="0.5" y="0.5" width="299" height="190" rx="12" fill="url(#shellGrad)" stroke="rgba(255,255,255,.14)"/>
+          <rect x="6" y="6" width="288" height="179" rx="9" fill="none" stroke="rgba(0,0,0,.35)"/>
+          <g class="screw"><circle cx="11" cy="11" r="4"/><circle cx="289" cy="11" r="4"/><circle cx="11" cy="180" r="4"/><circle cx="289" cy="180" r="4"/><circle cx="150" cy="182" r="3.5"/></g>
+        </svg>
+
+        <span class="label">
+          <span class="photo"><img id="labelImg" class="cover-img" alt=""></span>
+          <span class="side">A</span>
+          <span id="labelTitle" class="ltitle">TuneDeck</span>
+          <span id="labelArtist" class="lartist">mixtape</span>
+        </span>
+
+        <svg class="front" viewBox="0 0 300 191" aria-hidden="true">
+          <defs>
+            <clipPath id="winClip"><rect x="84" y="50" width="132" height="54" rx="8"/></clipPath>
+          </defs>
+          <rect class="window" x="84" y="50" width="132" height="54" rx="8"/>
+          <g clip-path="url(#winClip)">
+            <circle class="spool spool-l" cx="112" cy="77" r="30"/>
+            <circle class="spool spool-r" cx="188" cy="77" r="30"/>
+            <path class="tape-line" d="M112 104 H188"/>
+          </g>
+          <g class="hub hub-l">
+            <circle class="hub-ring" cx="112" cy="77" r="11"/>
+            <circle class="hub-hole" cx="112" cy="77" r="6.5"/>
+            <g class="teeth"><rect x="110.6" y="69.5" width="2.8" height="4" rx=".6"/><rect x="110.6" y="80.5" width="2.8" height="4" rx=".6" /><rect x="104.5" y="75.6" width="4" height="2.8" rx=".6"/><rect x="115.5" y="75.6" width="4" height="2.8" rx=".6"/></g>
+          </g>
+          <g class="hub hub-r">
+            <circle class="hub-ring" cx="188" cy="77" r="11"/>
+            <circle class="hub-hole" cx="188" cy="77" r="6.5"/>
+            <g class="teeth"><rect x="186.6" y="69.5" width="2.8" height="4" rx=".6"/><rect x="186.6" y="80.5" width="2.8" height="4" rx=".6" /><rect x="180.5" y="75.6" width="4" height="2.8" rx=".6"/><rect x="191.5" y="75.6" width="4" height="2.8" rx=".6"/></g>
+          </g>
+          <rect class="window-glare" x="84" y="50" width="132" height="54" rx="8"/>
+          <path class="bridge" d="M58 191 L74 140 Q76 135 82 135 H218 Q224 135 226 140 L242 191 Z"/>
+          <g class="holes">
+            <circle cx="96" cy="165" r="5"/><circle cx="204" cy="165" r="5"/>
+            <rect x="128" y="168" width="10" height="9" rx="1.5"/><rect x="162" y="168" width="10" height="9" rx="1.5"/>
+            <rect x="143" y="160" width="14" height="14" rx="2"/>
+          </g>
+        </svg>
+      </span>
+
+      <!-- LP -->
+      <span class="disc-body lp-body">
+        <span class="platter">
+          <span class="grooves"></span>
+          <span class="lp-label"><img class="cover-img" alt=""></span>
+          <span class="lp-hole"></span>
+        </span>
+        <span class="lp-sheen"></span>
+      </span>
+
+      <!-- CD -->
+      <span class="disc-body cd-body">
+        <span class="platter">
+          <img class="cover-img cd-print" alt="">
+          <span class="cd-hub"></span>
+          <span class="cd-hole"></span>
+        </span>
+        <span class="cd-sheen"></span>
+      </span>
+
+      <!-- 숨은 테마: 세탁기 -->
+      <span class="disc-body washer-body">
+        <span class="w-panel"><span class="w-btn"></span><span class="w-btn"></span><span class="w-led"></span><span class="w-dial"></span></span>
+        <span class="w-door">
+          <span class="platter w-drum"><img class="cover-img" alt=""><span class="w-holes"></span></span>
+          <span class="w-glass"></span>
+        </span>
+      </span>
+
+      <!-- 숨은 테마: 자동차 바퀴 -->
+      <span class="disc-body tire-body">
+        <!-- 뒤: 타이어 + 휠 안쪽 + 브레이크 디스크 (회전) -->
+        <span class="platter">
+          <svg viewBox="0 0 100 100" aria-hidden="true">
+            <defs>
+              <radialGradient id="tireWall" cx="50%" cy="50%" r="50%">
+                <stop offset="0.68" stop-color="#26272b"/><stop offset="0.86" stop-color="#18191b"/><stop offset="1" stop-color="#0d0d0e"/>
+              </radialGradient>
+            </defs>
+            <circle cx="50" cy="50" r="50" fill="url(#tireWall)"/>
+            <circle cx="50" cy="50" r="48.6" class="w-tread"/>
+            <circle cx="50" cy="50" r="40.5" class="w-wallline"/>
+            <circle cx="50" cy="50" r="35.5" class="w-barrel"/>
+            <circle cx="50" cy="50" r="27" class="w-disc"/>
+            <circle cx="50" cy="50" r="18" class="w-disc-hat"/>
+            <g class="w-disc-holes"><circle transform="rotate(0 50 50)" cx="50" cy="28.5" r="1"/><circle transform="rotate(30 50 50)" cx="50" cy="28.5" r="1"/><circle transform="rotate(60 50 50)" cx="50" cy="28.5" r="1"/><circle transform="rotate(90 50 50)" cx="50" cy="28.5" r="1"/><circle transform="rotate(120 50 50)" cx="50" cy="28.5" r="1"/><circle transform="rotate(150 50 50)" cx="50" cy="28.5" r="1"/><circle transform="rotate(180 50 50)" cx="50" cy="28.5" r="1"/><circle transform="rotate(210 50 50)" cx="50" cy="28.5" r="1"/><circle transform="rotate(240 50 50)" cx="50" cy="28.5" r="1"/><circle transform="rotate(270 50 50)" cx="50" cy="28.5" r="1"/><circle transform="rotate(300 50 50)" cx="50" cy="28.5" r="1"/><circle transform="rotate(330 50 50)" cx="50" cy="28.5" r="1"/></g>
+          </svg>
+        </span>
+        <!-- 가운데: 브레이크 캘리퍼 (고정, 돌지 않음) -->
+        <svg class="w-caliper" viewBox="0 0 100 100" aria-hidden="true">
+          <path d="M66.5 22.5 A33 33 0 0 1 79.5 39.5 L73.5 41.5 A26.5 26.5 0 0 0 62.6 27.6 Z" />
+        </svg>
+        <!-- 앞: 휠 림 + 5스포크 + 너트 + 센터캡 (회전) -->
+        <span class="platter wheel-front">
+          <svg viewBox="0 0 100 100" aria-hidden="true">
+            <defs>
+              <linearGradient id="alloy" x1="0" y1="0" x2="1" y2="1">
+                <stop offset="0" stop-color="#f4f5f7"/><stop offset="0.5" stop-color="#c3c7cd"/><stop offset="1" stop-color="#8d939b"/>
+              </linearGradient>
+            </defs>
+            <circle cx="50" cy="50" r="35.8" class="w-lip"/>
+            <g class="w-spokes"><path transform="rotate(0 50 50)" d="M47 38.5 L44.8 16.4 Q50 14.8 55.2 16.4 L53 38.5 Z"/><path transform="rotate(72 50 50)" d="M47 38.5 L44.8 16.4 Q50 14.8 55.2 16.4 L53 38.5 Z"/><path transform="rotate(144 50 50)" d="M47 38.5 L44.8 16.4 Q50 14.8 55.2 16.4 L53 38.5 Z"/><path transform="rotate(216 50 50)" d="M47 38.5 L44.8 16.4 Q50 14.8 55.2 16.4 L53 38.5 Z"/><path transform="rotate(288 50 50)" d="M47 38.5 L44.8 16.4 Q50 14.8 55.2 16.4 L53 38.5 Z"/></g>
+            <circle cx="50" cy="50" r="13" class="w-hub"/>
+            <g class="w-nuts"><circle transform="rotate(36 50 50)" cx="50" cy="40.6" r="1.4"/><circle transform="rotate(108 50 50)" cx="50" cy="40.6" r="1.4"/><circle transform="rotate(180 50 50)" cx="50" cy="40.6" r="1.4"/><circle transform="rotate(252 50 50)" cx="50" cy="40.6" r="1.4"/><circle transform="rotate(324 50 50)" cx="50" cy="40.6" r="1.4"/></g>
+          </svg>
+          <span class="t-cap"><img class="cover-img" alt=""></span>
+        </span>
+        <span class="t-sheen"></span>
+      </span>
+
+      <!-- 숨은 테마: 마법진 -->
+      <span class="disc-body magic-body">
+        <span class="platter m-outer">
+          <svg viewBox="0 0 100 100" aria-hidden="true">
+            <defs><path id="runePath" d="M50 50 m-40 0 a40 40 0 1 1 80 0 a40 40 0 1 1 -80 0"/></defs>
+            <circle cx="50" cy="50" r="48" class="m-line"/>
+            <circle cx="50" cy="50" r="45.5" class="m-thin"/>
+            <circle cx="50" cy="50" r="35" class="m-line"/>
+            <text class="m-runes"><textPath href="#runePath">ᚠᚢᚦᚨᚱᚲᚷᚹ·ᚺᚾᛁᛃᛇᛈᛉᛊ·ᛏᛒᛖᛗᛚᛜᛞᛟ·ᚠᚢᚦᚨᚱᚲᚷᚹ·</textPath></text>
+            <path class="m-line" d="M50 15 L80.3 67.5 L19.7 67.5 Z M50 85 L19.7 32.5 L80.3 32.5 Z"/>
+            <g class="m-dots"><circle cx="50" cy="2" r="1.6"/><circle cx="98" cy="50" r="1.6"/><circle cx="50" cy="98" r="1.6"/><circle cx="2" cy="50" r="1.6"/></g>
+          </svg>
+        </span>
+        <span class="m-inner">
+          <svg viewBox="0 0 100 100" aria-hidden="true"><circle cx="50" cy="50" r="30" class="m-dash"/><circle cx="50" cy="50" r="26" class="m-thin"/></svg>
+        </span>
+        <span class="m-core"><img class="cover-img" alt=""></span>
+      </span>
+
+      <span id="viz" class="viz" aria-hidden="true"></span>
+    </button>
+
+    <svg class="tonearm" viewBox="0 0 90 230" aria-hidden="true">
+      <circle class="base" cx="62" cy="22" r="15"/>
+      <circle class="pivot" cx="62" cy="22" r="6"/>
+      <path class="arm" d="M62 22 L58 150 Q56 178 30 196"/>
+      <rect class="head" x="14" y="190" width="22" height="13" rx="3" transform="rotate(-38 25 196)"/>
+    </svg>
+
+    <!-- 소리만 재생: YouTube 플레이어는 보이지 않게 둔다 -->
+    <div id="playerHost" aria-hidden="true"><div id="player"></div></div>
+    <div id="resolver" aria-hidden="true"></div>
+  </div>
+
+  <script src="web-api.js"></script>
+  <script src="app.js"></script>
+  <script src="mobile.js"></script>
+  <script src="https://www.youtube.com/iframe_api" async></script>
+</body>
+</html>

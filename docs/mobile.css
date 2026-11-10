@@ -1,0 +1,29 @@
+/* 폰(웹)용 덧칠 — 데스크톱 style.css 위에 얹음 */
+:root { color-scheme: dark; } /* 삼성 인터넷 '다크 모드'가 색을 뒤집지 않게 */
+
+html, body {
+  background: #120f14;
+  overscroll-behavior: none; /* 당겨서 새로고침 막기 */
+  touch-action: manipulation; /* 두 번 탭 확대 막기 */
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* mobile.js 가 폰 폭에 맞춰 키움 */
+#app {
+  inset: auto;
+  left: 0;
+  top: 0;
+  width: 280px;
+  height: 100vh;
+  transform-origin: 0 0;
+}
+
+.panel { border-radius: 0; box-shadow: none; }
+
+/* 폰에는 접기·종료·투명도가 필요 없음 */
+#collapseBtn, #quitBtn { display: none !important; }
+.topbar label.volume:has(#opacity) { display: none; }
+.topbar, .expanded .cassette { cursor: default; }
+
+/* 마우스를 올려야 보이던 '빼기(×)' 버튼을 항상 보이게 */
+#queue .item .act { opacity: 0.55; }

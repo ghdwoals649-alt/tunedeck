@@ -125,7 +125,7 @@ def main():
     write_icons(STAGE / 'res')
     (STAGE / 'apktool.yml').write_text(
         f'version: 2.12.1\n'
-        f'apkFileName: TuneDeck.apk\n'
+        f'apkFileName: youtape.apk\n'
         f'usesFramework:\n  ids:\n  - 1\n'
         f'sdkInfo:\n  minSdkVersion: 24\n  targetSdkVersion: 34\n'
         f'packageInfo:\n  forcedPackageId: 127\n'
@@ -146,8 +146,9 @@ def main():
          '--ks', KEYSTORE, '--ksAlias', 'tunedeck', '--ksPass', KS_PASS, '--ksKeyPass', KS_PASS,
          '--allowResign'])
     out = next(signed_dir.glob('*.apk'))
-    shutil.copy2(out, DOCS / 'TuneDeck.apk')
-    print('완료:', DOCS / 'TuneDeck.apk', f'({(DOCS / "TuneDeck.apk").stat().st_size:,} bytes, v{version}, code {code})')
+    apk = DOCS / 'youtape.apk'
+    shutil.copy2(out, apk)
+    print('완료:', apk, f'({apk.stat().st_size:,} bytes, v{version}, code {code})')
 
 
 if __name__ == '__main__':

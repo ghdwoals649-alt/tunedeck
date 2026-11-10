@@ -452,7 +452,7 @@
 
   let labelId;
   function setCassetteLabel(it) {
-    els.labelTitle.textContent = it ? it.title : 'TuneDeck';
+    els.labelTitle.textContent = it ? it.title : 'youtape';
     els.labelArtist.textContent = it ? (it.author || '') : '빈 테이프';
     const id = it ? it.id : null;
     if (id === labelId) return;
@@ -587,7 +587,7 @@
       els.artist.textContent = it.author || ' ';
       els.tape.title = it.title;
       if (!expanded) els.tape.setAttribute('aria-label', `펼치기 — ${it.title}`);
-      document.title = `${it.title} — TuneDeck`;
+      document.title = `${it.title} — youtape`;
       api?.nowPlaying(it.title);
       if ('mediaSession' in navigator && window.MediaMetadata) {
         navigator.mediaSession.metadata = new MediaMetadata({
@@ -598,8 +598,8 @@
     } else {
       els.title.textContent = '아직 재생 중인 곡이 없어요';
       els.artist.textContent = '아래에서 듣고 싶은 곡을 검색해 보세요';
-      els.tape.title = 'TuneDeck';
-      document.title = 'TuneDeck';
+      els.tape.title = 'youtape';
+      document.title = 'youtape';
       api?.nowPlaying('');
     }
     setBackdrop(it && it.id);

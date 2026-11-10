@@ -13,6 +13,7 @@ ROOT = Path(__file__).resolve().parent
 SRC = ROOT / 'renderer'
 WEB = ROOT / 'web'
 OUT = ROOT / 'docs'
+NAME = 'youtape'  # 폰에서 보이는 앱 이름
 
 
 def must_replace(text, old, new):
@@ -23,6 +24,8 @@ def must_replace(text, old, new):
 
 def build_index():
     html = (SRC / 'index.html').read_text(encoding='utf-8')
+    html = must_replace(html, '<title>TuneDeck</title>', f'<title>{NAME}</title>')
+    html = must_replace(html, 'class="ltitle">TuneDeck<', f'class="ltitle">{NAME}<')
     html = must_replace(html, '<html lang="ko">', '<html lang="ko" class="mobile">')
     html = must_replace(
         html,
@@ -77,8 +80,8 @@ def build_icons():
 
 def build_manifest():
     manifest = {
-        'name': 'TuneDeck',
-        'short_name': 'TuneDeck',
+        'name': NAME,
+        'short_name': NAME,
         'description': '카세트테이프 음악 플레이어',
         'lang': 'ko',
         'start_url': './',
@@ -100,8 +103,10 @@ def main():
     if OUT.exists():
         shutil.rmtree(OUT)
     OUT.mkdir()
-    for f in ('app.js', 'style.css'):
-        shutil.copy2(SRC / f, OUT / f)
+    shutil.copy2(SRC / 'style.css', OUT / 'style.css')
+    app = (SRC / 'app.js').read_text(encoding='utf-8')
+    app = app.replace("'TuneDeck'", f"'{NAME}'").replace('— TuneDeck', f'— {NAME}')
+    (OUT / 'app.js').write_text(app, encoding='utf-8')
     for f in ('web-api.js', 'mobile.js', 'mobile.css', 'sw.js'):
         shutil.copy2(WEB / f, OUT / f)
     build_index()

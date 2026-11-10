@@ -1,6 +1,6 @@
 {
-  "name": "TuneDeck",
-  "short_name": "TuneDeck",
+  "name": "youtape",
+  "short_name": "youtape",
   "description": "카세트테이프 음악 플레이어",
   "lang": "ko",
   "start_url": "./",

@@ -12,9 +12,9 @@
 - 노래·가수로 검색하거나 유튜브 링크를 붙여넣어 추가해요.
 - 새 버전은 GitHub에서 자동으로 받아와요.
 
-## 갤럭시(안드로이드) 폰에서 쓰기
+## 갤럭시(안드로이드) 폰에서 쓰기 — 앱 이름 youtape
 
-**설치 파일(APK):** 폰에서 https://github.com/ghdwoals649-alt/tunedeck/raw/main/docs/TuneDeck.apk 를 열어 받은 뒤 설치하세요.
+**설치 파일(APK):** 폰에서 https://github.com/ghdwoals649-alt/tunedeck/raw/main/docs/youtape.apk 를 열어 받은 뒤 설치하세요.
 처음 설치할 때 '출처를 알 수 없는 앱' 설치를 허용해야 해요.
 
 - 재생목록·테마·API 키는 그 폰에만 저장돼요.

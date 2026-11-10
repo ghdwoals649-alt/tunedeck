@@ -69,6 +69,11 @@
             <span>마법진</span>
           </button>
         </div>
+        <label class="video-toggle">
+          <input type="checkbox" id="videoToggle">
+          <span class="switch" aria-hidden="true"></span>
+          <span>영상도 보기</span>
+        </label>
       </div>
 
       <div id="updateBar" class="update-bar" hidden>
@@ -84,6 +89,7 @@
       </div>
 
       <section class="now">
+        <div class="video-space" aria-hidden="true"></div>
         <div class="meta">
           <h1 id="title">아직 재생 중인 곡이 없어요</h1>
           <p id="artist">아래에서 듣고 싶은 곡을 검색해 보세요</p>
@@ -295,7 +301,7 @@
       <rect class="head" x="14" y="190" width="22" height="13" rx="3" transform="rotate(-38 25 196)"/>
     </svg>
 
-    <!-- 소리만 재생: YouTube 플레이어는 보이지 않게 둔다 -->
+    <!-- YouTube 플레이어: 평소엔 숨겨서 소리만, '영상도 보기'를 켜면 카세트 아래(.video-space 자리)에 보임 -->
     <div id="playerHost" aria-hidden="true"><div id="player"></div></div>
     <div id="resolver" aria-hidden="true"></div>
   </div>

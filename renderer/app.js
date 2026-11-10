@@ -30,6 +30,7 @@
     volume: 80,
     opacity: 100,
     secrets: false, // 숨은 테마를 찾았는지
+    showVideo: false, // '영상도 보기'
   };
   // 지금 테마의 본체 요소 — 교체 애니메이션은 이 요소에 적용
   let skin = 'cassette';
@@ -69,7 +70,7 @@
     saveTimer = setTimeout(() => {
       api?.saveState({
         items: state.items, index: state.index,
-        shuffle: state.shuffle, repeat: state.repeat, volume: state.volume, opacity: state.opacity, secrets: state.secrets,
+        shuffle: state.shuffle, repeat: state.repeat, volume: state.volume, opacity: state.opacity, secrets: state.secrets, showVideo: state.showVideo,
       });
     }, 250);
   }
@@ -1015,6 +1016,20 @@
   }
   skinBtn.addEventListener('click', (e) => { e.stopPropagation(); toggleSkinMenu(skinMenu.hidden); });
 
+  // '영상도 보기' 스위치: 켜면 카세트 아래에 YouTube 영상이 보임
+  const videoToggle = $('videoToggle');
+  function applyVideo() {
+    appEl.classList.toggle('show-video', state.showVideo);
+    videoToggle.checked = state.showVideo;
+    $('playerHost').setAttribute('aria-hidden', String(!state.showVideo));
+    api?.repaint?.();
+  }
+  videoToggle.addEventListener('change', () => {
+    state.showVideo = videoToggle.checked;
+    applyVideo();
+    save();
+  });
+
   // 이스터에그: "테마" 글자를 5번 연속(2.5초 안에) 누르면 숨은 테마 3개가 나타남
   function applySecrets() { skinMenu.classList.toggle('secrets-on', state.secrets); }
   let titleClicks = [];
@@ -1188,9 +1203,11 @@
       state.volume = Number.isFinite(saved.volume) ? saved.volume : 80;
       state.opacity = Number.isFinite(saved.opacity) ? Math.max(30, Math.min(100, saved.opacity)) : 100;
       state.secrets = !!saved.secrets;
+      state.showVideo = !!saved.showVideo;
     }
     if (SECRET.includes(skin)) state.secrets = true; // 숨은 테마를 쓰고 있으면 메뉴에도 보이게
     applySecrets();
+    applyVideo();
     els.volume.value = state.volume;
     paintRange(els.volume);
     applyOpacity();

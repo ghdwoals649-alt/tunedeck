@@ -194,6 +194,63 @@ svg { display: block; }
 }
 #player { width: 100%; height: 100%; border: 0; }
 
+/* '영상도 보기' 켜짐: 카세트 아래 자리(.video-space)에 영상 표시
+   (플레이어를 옮기면 곡이 처음부터 다시 나오므로, 위치만 바꿔서 보여 줌) */
+.video-space { height: 0; }
+.show-video.expanded .video-space { height: 137px; margin: 0 0 10px; }
+.show-video.expanded #playerHost {
+  left: 18px;
+  top: 206px; /* 위쪽 막대 40 + 데크 166 */
+  width: 244px;
+  height: 137px;
+  opacity: 1;
+  pointer-events: auto;
+  z-index: 4;
+  border-radius: 10px;
+  background: #000;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.35), inset 0 0 0 1px rgba(255, 255, 255, 0.06);
+  transition: opacity 0.35s 0.25s;
+}
+
+/* 테마 메뉴의 '영상도 보기' 스위치 */
+.video-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 10px 2px 0;
+  padding-top: 10px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  font-size: 12px;
+  color: var(--paper);
+  cursor: pointer;
+}
+.video-toggle input { position: absolute; opacity: 0; width: 0; height: 0; }
+.video-toggle .switch {
+  position: relative;
+  width: 30px;
+  height: 17px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.18);
+  transition: background 0.2s;
+  flex: none;
+}
+.video-toggle .switch::after {
+  content: '';
+  position: absolute;
+  left: 2px;
+  top: 2px;
+  width: 13px;
+  height: 13px;
+  border-radius: 50%;
+  background: #fff;
+  transition: transform 0.2s var(--ease);
+}
+.video-toggle input:checked + .switch { background: var(--brass); }
+.video-toggle input:checked + .switch::after { transform: translateX(13px); }
+.video-toggle input:focus-visible + .switch { outline: 2px solid var(--brass); outline-offset: 2px; }
+.skin-washer .video-toggle { border-top-color: rgba(31, 38, 48, 0.1); }
+.skin-washer .video-toggle .switch { background: rgba(31, 38, 48, 0.18); }
+
 .meta { margin-top: 6px; min-width: 0; }
 #title {
   margin: 0;
